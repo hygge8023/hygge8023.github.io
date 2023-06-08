@@ -20,27 +20,30 @@
 
 <script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Muse","darkmode":true,"version":"8.16.0","exturl":false,"sidebar":{"position":"right","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"show_result":true,"style":"flat"},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
 
-    <meta name="description" content="本文记录了我在学习和工作中学习的openstack相关命令">
+    <meta name="description" content="当我们想要给云主机添加第二块无 IP 的网卡时，需要云主机挂载上新的网卡接口，但是在挂载接口时，时常会dhcp自动的分配一个ip地址，此时我们需要给他删除掉分配的地址，让他成为一个没有IP地址的网卡">
 <meta property="og:type" content="article">
-<meta property="og:title" content="openstack常用命令整理">
-<meta property="og:url" content="http://example.com/2023/05/24/openstack/index.html">
+<meta property="og:title" content="删除网卡自动分配的fix ip">
+<meta property="og:url" content="http://example.com/2023/05/24/1/index.html">
 <meta property="og:site_name" content="I always forget to tell you that how lucky I am to encounter you.">
-<meta property="og:description" content="本文记录了我在学习和工作中学习的openstack相关命令">
+<meta property="og:description" content="当我们想要给云主机添加第二块无 IP 的网卡时，需要云主机挂载上新的网卡接口，但是在挂载接口时，时常会dhcp自动的分配一个ip地址，此时我们需要给他删除掉分配的地址，让他成为一个没有IP地址的网卡">
 <meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/2023/05/24/1/1.jpg">
+<meta property="og:image" content="http://example.com/2023/05/24/1/2.jpg">
 <meta property="article:published_time" content="2023-05-24T08:18:02.000Z">
-<meta property="article:modified_time" content="2023-05-25T02:10:12.485Z">
+<meta property="article:modified_time" content="2023-06-03T00:03:48.931Z">
 <meta property="article:author" content="木木三三吖">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/2023/05/24/1/1.jpg">
 
 
-<link rel="canonical" href="http://example.com/2023/05/24/openstack/">
+<link rel="canonical" href="http://example.com/2023/05/24/1/">
 
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://example.com/2023/05/24/openstack/","path":"2023/05/24/openstack/","title":"openstack常用命令整理"}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://example.com/2023/05/24/1/","path":"2023/05/24/1/","title":"删除网卡自动分配的fix ip"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
-<title>openstack常用命令整理 | I always forget to tell you that how lucky I am to encounter you.</title>
+<title>删除网卡自动分配的fix ip | I always forget to tell you that how lucky I am to encounter you.</title>
   
 
 
@@ -127,7 +130,7 @@
   
   <aside class="sidebar">
 
-    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+    <div class="sidebar-inner sidebar-overview-active">
       <ul class="sidebar-nav">
         <li class="sidebar-nav-toc">
           文章目录
@@ -140,7 +143,6 @@
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%85%8D%E9%A2%9D-%E3%80%8Cquota%E3%80%8D"><span class="nav-number">1.</span> <span class="nav-text">配额 「quota」</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%99%9A%E6%8B%9F%E6%9C%BA-%E3%80%8Cserver%E3%80%8D"><span class="nav-number">2.</span> <span class="nav-text">虚拟机 「server」</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%90%81%E7%BD%AE-%E3%80%8Cshelve%E3%80%8D"><span class="nav-number">3.</span> <span class="nav-text">搁置 「shelve」</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%95%9C%E5%83%8F-%E3%80%8Cimage%E3%80%8D"><span class="nav-number">4.</span> <span class="nav-text">镜像 「image」</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BD%91%E7%BB%9C-%E3%80%8Cnetwork%E3%80%8D"><span class="nav-number">5.</span> <span class="nav-text">网络 「network」</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%94%AF%E4%BB%98%E8%80%85-%E3%80%8Cassignment%E3%80%8D"><span class="nav-number">6.</span> <span class="nav-text">支付者 「assignment」</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%B7-%E3%80%8Cvolume%E3%80%8D"><span class="nav-number">7.</span> <span class="nav-text">卷  「volume」</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%81%E7%A7%BB-%E3%80%8Cmigrate%E3%80%8D"><span class="nav-number">8.</span> <span class="nav-text">迁移  「migrate」</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1-%E3%80%8Cloadbalancer%E3%80%8D"><span class="nav-number">9.</span> <span class="nav-text">负载均衡  「loadbalancer」</span></a></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -196,7 +198,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2023/05/24/openstack/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2023/05/24/1/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -209,12 +211,12 @@
     </span>
 
     <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="openstack常用命令整理 | I always forget to tell you that how lucky I am to encounter you.">
-      <meta itemprop="description" content="本文记录了我在学习和工作中学习的openstack相关命令">
+      <meta itemprop="name" content="删除网卡自动分配的fix ip | I always forget to tell you that how lucky I am to encounter you.">
+      <meta itemprop="description" content="当我们想要给云主机添加第二块无 IP 的网卡时，需要云主机挂载上新的网卡接口，但是在挂载接口时，时常会dhcp自动的分配一个ip地址，此时我们需要给他删除掉分配的地址，让他成为一个没有IP地址的网卡">
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          openstack常用命令整理
+          删除网卡自动分配的fix ip
         </h1>
 
         <div class="post-meta-container">
@@ -232,7 +234,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">更新于</span>
-      <time title="修改时间：2023-05-25 10:10:12" itemprop="dateModified" datetime="2023-05-25T10:10:12+08:00">2023-05-25</time>
+      <time title="修改时间：2023-06-03 08:03:48" itemprop="dateModified" datetime="2023-06-03T08:03:48+08:00">2023-06-03</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -251,62 +253,32 @@
         <i class="far fa-file-word"></i>
       </span>
       <span class="post-meta-item-text">本文字数：</span>
-      <span>2.2k</span>
+      <span>377</span>
     </span>
     <span class="post-meta-item" title="阅读时长">
       <span class="post-meta-item-icon">
         <i class="far fa-clock"></i>
       </span>
       <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>2 分钟</span>
+      <span>1 分钟</span>
     </span>
 </div>
 
-            <div class="post-description">本文记录了我在学习和工作中学习的openstack相关命令</div>
+            <div class="post-description">当我们想要给云主机添加第二块无 IP 的网卡时，需要云主机挂载上新的网卡接口，但是在挂载接口时，时常会dhcp自动的分配一个ip地址，此时我们需要给他删除掉分配的地址，让他成为一个没有IP地址的网卡</div>
         </div>
       </header>
 
     
     
     
-    <div class="post-body" itemprop="articleBody"><h2 id="配额-「quota」"><a href="#配额-「quota」" class="headerlink" title="配额 「quota」"></a>配额 「quota」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">openstack quota set --ram 1024 --instances 5 --cores 3 &#123;项目名&#125;     # 项目限制配额</span><br></pre></td></tr></table></figure>
+    <div class="post-body" itemprop="articleBody"><p>当我们想要给云主机添加第二块无 IP 的网卡时，需要云主机挂载上新的网卡接口，但是在挂载接口时，时常会dhcp自动的分配一个ip地址，此时我们需要给他删除掉分配的地址，让他成为一个没有IP地址的网卡</p>
+<p>找出目标云主机的 port 列表（此处我需要移除 IP的是 192.168.2.6 ）</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">openstack port list --server  1317ada5-231c-417f-9cc8-b6867591457e</span><br></pre></td></tr></table></figure>
 
-<h2 id="虚拟机-「server」"><a href="#虚拟机-「server」" class="headerlink" title="虚拟机 「server」"></a>虚拟机 「server」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">openstack console url show &#123;虚拟机名字&#125;</span><br><span class="line">openstack server delete &#123;虚拟机名字&#125;</span><br><span class="line">openstack server force-delete &#123;虚拟机名字&#125;       # 强制删除虚机</span><br><span class="line">openstack server list / show  </span><br><span class="line">openstack server resize      # 调整云主机大小</span><br><span class="line">openstack server event list --long &#123;虚拟机 id&#125;    # 查询云主机的事件</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/05/24/1/1.jpg"></p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">openstack  server  remove port $server_id  $port_id</span><br><span class="line">openstack port set $port_id   --no-fixed-ip</span><br><span class="line">openstack  server  add port $server_id  $port_id</span><br><span class="line">openstack port list --server  41350a43-bd76-45fc-92ff-283e01c124fa</span><br></pre></td></tr></table></figure>
 
-<h2 id="搁置-「shelve」"><a href="#搁置-「shelve」" class="headerlink" title="搁置 「shelve」"></a>搁置 「shelve」</h2><p>对于一些长时间不使用的虚拟机，即使处于关机状态，仍然会占用着集群资源<br>如果需要释放这些资源,则使用shelve来操作,该操作会将server实例作为image保存到glance中,然后在宿主机中删除该server实例</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">openstack server shelve &#123;虚机id&#125;  # 机器开启搁置状态 （搁置状态：--status SHELVED_OFFLOADED ）</span><br><span class="line">openstack server unshelve     # 取消搁置的机器</span><br></pre></td></tr></table></figure>
-
-<h2 id="镜像-「image」"><a href="#镜像-「image」" class="headerlink" title="镜像 「image」"></a>镜像 「image」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">共享私有镜像给其他项目</span><br><span class="line"></span><br><span class="line">openstack image set --shared &#123;镜像id&#125;    # 镜像设置为共享</span><br><span class="line">openstack image add project  &#123;镜像id&#125;  &#123;目标项目id&#125; </span><br><span class="line">openstack role add --user &#123;&#125;  project_member --project  &#123;目标项目id&#125; </span><br><span class="line"></span><br><span class="line">export OS_PROJECT_NAME=&#123;目标项目名&#125;       # 切换项目</span><br><span class="line">openstack image set --accept &#123;目标镜像id&#125; </span><br><span class="line">export OS_PROJECT_NAME=&#123;&#125;</span><br><span class="line">openstack role remove --user &#123;&#125; project_member --project &#123;目标项目id&#125;</span><br><span class="line"></span><br><span class="line">openstack image member list &#123;目标镜像id&#125;     # 验证是否共享成功</span><br><span class="line"></span><br><span class="line">openstack image set  # 更新镜像</span><br></pre></td></tr></table></figure>
-
-
-
-<h2 id="网络-「network」"><a href="#网络-「network」" class="headerlink" title="网络 「network」"></a>网络 「network」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">openstack floating ip list </span><br><span class="line"></span><br><span class="line">云主机添加无IP的网卡</span><br><span class="line">openstack network list --project &#123;项目名&#125;    # 查看项目下网络</span><br><span class="line"></span><br><span class="line">openstack port create  --network  &#123;网络id/name&#125;   &#123;端口名&#125;     在不指定IP地址的情况下创建一个端口</span><br><span class="line"></span><br><span class="line">创建指定IP地址的端口</span><br><span class="line">openstack port create --network net1 --fixed-ip subnet=subnet1,ip-address=192.0.2.40 &#123;端口名&#125;  </span><br><span class="line"></span><br><span class="line">openstack port list </span><br><span class="line">nova interface-attach --port-id  &#123;port id&#125;   &#123;server id&#125;   </span><br></pre></td></tr></table></figure>
-
-
-
-<h2 id="支付者-「assignment」"><a href="#支付者-「assignment」" class="headerlink" title="支付者 「assignment」"></a>支付者 「assignment」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">openstack role assignment list  --project  &#123;项目名&#125;  --name  # 查看用户的支付者</span><br></pre></td></tr></table></figure>
-
-
-
-<h2 id="卷-「volume」"><a href="#卷-「volume」" class="headerlink" title="卷  「volume」"></a>卷  「volume」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">openstack volume type list   # 查看卷类型</span><br><span class="line">openstack volume set --state &#123;&#125;     # 改变云硬盘状态  </span><br><span class="line">openstack volume backup list   # 查看云硬盘备份</span><br><span class="line">openstack volume snapshot list --all --volume &#123; id/name &#125;</span><br><span class="line"></span><br><span class="line">nova  volume-detach  &#123;云主机ID&#125; &#123;volume id&#125;     # 分离卷</span><br></pre></td></tr></table></figure>
-
-<p>Volume 除了可以用作 instance 的数据盘，也可以作为启动盘（Bootable Volume）创建Volume时，选择Volume Source为image，创建后可以看到该volume是Bootable的，后可根据需求创建可启动volume</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">openstack volume create --image $IMAGE_ID --size $SIZE --type $TYPE --bootable $NAME</span><br></pre></td></tr></table></figure>
-
-
-
-<h2 id="迁移-「migrate」"><a href="#迁移-「migrate」" class="headerlink" title="迁移  「migrate」"></a>迁移  「migrate」</h2><p>迁移的云主机若内存等资源使用率过高会导致热迁移实例写入内存页面的速度可能比复制它们的速度快<br>从而虚拟机产生了内存脏数据,无法完成迁移超时,虚拟机状态error</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">nova live-migration-force-complete 实例ID 迁移ID        # 强制迁移</span><br><span class="line">nova server-migration-list 实例ID                  # 获取迁移的任务ID</span><br><span class="line">nova live-migration-abort 实例ID 迁移ID                 # 取消迁移</span><br></pre></td></tr></table></figure>
-
-
-
-<h2 id="负载均衡-「loadbalancer」"><a href="#负载均衡-「loadbalancer」" class="headerlink" title="负载均衡  「loadbalancer」"></a>负载均衡  「loadbalancer」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">openstack loadbalancer list</span><br></pre></td></tr></table></figure>
-
-
-
-
-
-<p><a target="_blank" rel="noopener" href="https://access.redhat.com/documentation/zh-cn/red_hat_openstack_platform/17.0/html/command_line_interface_reference/index">redhat官方openstack命令行文档</a></p>
+<p><img src="/2023/05/24/1/2.jpg"></p>
 
     </div>
 
@@ -331,10 +303,13 @@
 
           <div class="post-nav">
             <div class="post-nav-item">
+                <a href="/2023/05/24/kolla-ansible-deploy-openstack-train/" rel="prev" title="kolla-ansible 部署 openstack——train">
+                  <i class="fa fa-chevron-left"></i> kolla-ansible 部署 openstack——train
+                </a>
             </div>
             <div class="post-nav-item">
-                <a href="/2023/05/24/network/" rel="next" title="Neutron-l3-agent">
-                  Neutron-l3-agent <i class="fa fa-chevron-right"></i>
+                <a href="/2023/05/28/Neutron-trunk%20ports/" rel="next" title="OpenStack Neutron trunk ports">
+                  OpenStack Neutron trunk ports <i class="fa fa-chevron-right"></i>
                 </a>
             </div>
           </div>

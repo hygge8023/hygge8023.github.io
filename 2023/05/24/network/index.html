@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width">
-<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 5.4.2">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 5.4.2">
 
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
@@ -17,7 +18,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha256-HtsXJanqjKTc8vVQjO4YMhiqFoXkfBsjBWcX91T1jr8=" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
 
-<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Muse","darkmode":false,"version":"8.16.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"show_result":true,"style":"flat"},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Muse","darkmode":true,"version":"8.16.0","exturl":false,"sidebar":{"position":"right","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"show_result":true,"style":"flat"},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
 
     <meta name="description" content="Neutron 的路由服务是由 l3 agent 提供的。 除此之外，l3 agent 通过 iptables 提供 firewall 和 floating ip 服务">
 <meta property="og:type" content="article">
@@ -88,7 +89,7 @@
 
 
 <nav class="site-nav">
-  <ul class="main-menu menu"><li class="menu-item menu-item-主页"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>主页</a></li><li class="menu-item menu-item-文章"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>文章</a></li><li class="menu-item menu-item-分类"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li>
+  <ul class="main-menu menu"><li class="menu-item menu-item-主页"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>主页</a></li><li class="menu-item menu-item-文章"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>文章</a></li><li class="menu-item menu-item-分类"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-标签"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li>
       <li class="menu-item menu-item-search">
         <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
         </a>
@@ -151,7 +152,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">4</span>
+          <span class="site-state-item-count">6</span>
           <span class="site-state-item-name">文章</span>
         </a>
       </div>
@@ -160,8 +161,18 @@
         <span class="site-state-item-count">1</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
   </nav>
 </div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/m0_51077280?type=blog" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;m0_51077280?type&#x3D;blog" rel="noopener me" target="_blank"><i class="fa  fa-address-card fa-fw"></i>CSDN</a>
+      </span>
+  </div>
 
         </div>
       </div>
@@ -239,7 +250,7 @@
         <i class="far fa-file-word"></i>
       </span>
       <span class="post-meta-item-text">本文字数：</span>
-      <span>2.6k</span>
+      <span>2.5k</span>
     </span>
     <span class="post-meta-item" title="阅读时长">
       <span class="post-meta-item-icon">
@@ -258,10 +269,10 @@
     
     
     <div class="post-body" itemprop="articleBody"><p>Neutron 的路由服务是由 l3 agent 提供的。 除此之外，l3 agent 通过 iptables 提供 firewall 和 floating ip 服务</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">openstack network agent list --host B2U02NET04</span></span><br><span class="line">+--------------------------------------+--------------------+------------+-------------------+-------+-------+---------------------------+</span><br><span class="line">| ID                                   | Agent Type         | Host       | Availability Zone | Alive | State | Binary                    |</span><br><span class="line">+--------------------------------------+--------------------+------------+-------------------+-------+-------+---------------------------+</span><br><span class="line">| 178352d1-b827-402b-8ac8-f2529f8c0079 | Metadata agent     | B2U02NET04 | None              | :-)   | UP    | neutron-metadata-agent    |</span><br><span class="line">| 4ace5ae6-ce68-4dfb-85b9-7e1ca139c21f | DHCP agent         | B2U02NET04 | nova              | :-)   | UP    | neutron-dhcp-agent        |</span><br><span class="line">| 90a46a2a-80cf-400f-a5fd-a620155c0a4c | Open vSwitch agent | B2U02NET04 | None              | :-)   | UP    | neutron-openvswitch-agent |</span><br><span class="line">| fac20f42-457a-486f-92c8-1d3eb6f1c39e | L3 agent           | B2U02NET04 | nova              | :-)   | UP    | neutron-vpn-agent         |</span><br><span class="line">+--------------------------------------+--------------------+------------+-------------------+-------+-------+---------------------------+</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">openstack network agent list --host B2U02NET04</span></span><br><span class="line">+--------------------------------------+--------------------+------------+-------------------+-------+-------+---------------------------+</span><br><span class="line">| ID                                   | Agent Type         | Host       | Availability Zone | Alive | State | Binary                    |</span><br><span class="line">+--------------------------------------+--------------------+------------+-------------------+-------+-------+---------------------------+</span><br><span class="line">| 178352d1-b827-402b-8ac8-f2529f8c0079 | Metadata agent     | B2U02NET04 | None              | :-)   | UP    | neutron-metadata-agent    |</span><br><span class="line">| 4ace5ae6-ce68-4dfb-85b9-7e1ca139c21f | DHCP agent         | B2U02NET04 | nova              | :-)   | UP    | neutron-dhcp-agent        |</span><br><span class="line">| 90a46a2a-80cf-400f-a5fd-a620155c0a4c | Open vSwitch agent | B2U02NET04 | None              | :-)   | UP    | neutron-openvswitch-agent |</span><br><span class="line">| fac20f42-457a-486f-92c8-1d3eb6f1c39e | L3 agent           | B2U02NET04 | nova              | :-)   | UP    | neutron-vpn-agent         |</span><br><span class="line">+--------------------------------------+--------------------+------------+-------------------+-------+-------+---------------------------+</span><br></pre></td></tr></table></figure>
 
 <p>根据 路由id 可以找到本 router 所在的网络节点</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">openstack router list  --project wangpeipei</span></span><br><span class="line">+--------------------------------------+----------------+--------+-------+----------------------------------+-------------+------+</span><br><span class="line">| ID                                   | Name           | Status | State | Project                          | Distributed | HA   |</span><br><span class="line">+--------------------------------------+----------------+--------+-------+----------------------------------+-------------+------+</span><br><span class="line">| 2878b574-9793-45a5-bf39-04e1092fb697 | Default Router | ACTIVE | UP    | 8923b95c43414065a7dcfee1f4d6477b | False       | True |</span><br><span class="line">+--------------------------------------+----------------+--------+-------+----------------------------------+-------------+------+</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">获取该路由上的 业务 IP</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">openstack floating ip list --router 2878b574-9793-45a5-bf39-04e1092fb697</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">环境为高可用主备router节点，HA State 为 standby 表示待用状态</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">openstack network agent list --router 2878b574-9793-45a5-bf39-04e1092fb697 --long</span></span><br><span class="line">+--------------------------------------+------------+------------+-------------------+-------+-------+-------------------+----------+</span><br><span class="line">| ID                                   | Agent Type | Host       | Availability Zone | Alive | State | Binary            | HA State |</span><br><span class="line">+--------------------------------------+------------+------------+-------------------+-------+-------+-------------------+----------+</span><br><span class="line">| 8add8415-5956-462a-93d1-e9a97c7a3cbe | L3 agent   | A4U02NET02 | nova              | :-)   | UP    | neutron-vpn-agent | active   |</span><br><span class="line">| e123a05b-fe85-4207-b0aa-ff2a3a9169e4 | L3 agent   | B1U02NET03 | nova              | :-)   | UP    | neutron-vpn-agent | standby  |</span><br><span class="line">+--------------------------------------+------------+------------+-------------------+-------+-------+-------------------+----------+</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">[root@A4U02NET02 ~]# ip netns ls  |grep  2878b574-9793-45a5-bf39-04e1092fb697</span><br><span class="line">qrouter-2878b574-9793-45a5-bf39-04e1092fb697 (id: 36)</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">openstack router list  --project wangpeipei</span></span><br><span class="line">+--------------------------------------+----------------+--------+-------+----------------------------------+-------------+------+</span><br><span class="line">| ID                                   | Name           | Status | State | Project                          | Distributed | HA   |</span><br><span class="line">+--------------------------------------+----------------+--------+-------+----------------------------------+-------------+------+</span><br><span class="line">| 2878b574-9793-45a5-bf39-04e1092fb697 | Default Router | ACTIVE | UP    | 8923b95c43414065a7dcfee1f4d6477b | False       | True |</span><br><span class="line">+--------------------------------------+----------------+--------+-------+----------------------------------+-------------+------+</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">获取该路由上的 业务 IP</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">openstack floating ip list --router 2878b574-9793-45a5-bf39-04e1092fb697</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">环境为高可用主备router节点，HA State 为 standby 表示待用状态</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">openstack network agent list --router 2878b574-9793-45a5-bf39-04e1092fb697 --long</span></span><br><span class="line">+--------------------------------------+------------+------------+-------------------+-------+-------+-------------------+----------+</span><br><span class="line">| ID                                   | Agent Type | Host       | Availability Zone | Alive | State | Binary            | HA State |</span><br><span class="line">+--------------------------------------+------------+------------+-------------------+-------+-------+-------------------+----------+</span><br><span class="line">| 8add8415-5956-462a-93d1-e9a97c7a3cbe | L3 agent   | A4U02NET02 | nova              | :-)   | UP    | neutron-vpn-agent | active   |</span><br><span class="line">| e123a05b-fe85-4207-b0aa-ff2a3a9169e4 | L3 agent   | B1U02NET03 | nova              | :-)   | UP    | neutron-vpn-agent | standby  |</span><br><span class="line">+--------------------------------------+------------+------------+-------------------+-------+-------+-------------------+----------+</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">[root@A4U02NET02 ~]# ip netns ls  |grep  2878b574-9793-45a5-bf39-04e1092fb697</span><br><span class="line">qrouter-2878b574-9793-45a5-bf39-04e1092fb697 (id: 36)</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
 
 
 
@@ -344,19 +355,37 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-line"></i>
     </span>
-    <span title="站点总字数">6k</span>
+    <span title="站点总字数">10k</span>
   </span>
   <span class="post-meta-item">
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">6 分钟</span>
+    <span title="站点阅读时长">9 分钟</span>
   </span>
 </div>
 
 <!--
 隐藏网页底部 powered By Hexo / 强力驱动
 -->
+
+<!-- 网站运行时间的设置 -->
+<span id="timeDate">载入天数...</span>
+<script>
+    var now = new Date();
+    function createtime() {
+        var grt= new Date("05/28/2023 10:00:00"); //此处修改你的建站时间或者网站上线时间
+        now.setTime(now.getTime()+250);
+        days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+        hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+        if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+        mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+        seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+        snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+        document.getElementById("timeDate").innerHTML = "本站居然运行了 "+dnum+" 天 "+ hnum + " 小时 " + mnum + " 分 " + snum + " 秒.";
+    }
+setInterval("createtime()",250);
+</script>
 
     </div>
   </footer>
@@ -381,6 +410,29 @@
 
 
   
+
+
+  <script src="[object Object]"></script>
+  <script src="/%5Bobject%20Object%5D"></script>
+
+
+<script>
+var options = {
+  bottom: '64px', // default: '32px'
+  right: 'unset', // default: '32px'
+  left: '32px', // default: 'unset'
+  time: '0.5s', // default: '0.3s'
+  mixColor: '#fff', // default: '#fff'
+  backgroundColor: '#fff',  // default: '#fff'
+  buttonColorDark: '#100f2c',  // default: '#100f2c'
+  buttonColorLight: '#fff', // default: '#fff'
+  saveInCookies: true, // default: true,
+  label: '🌓', // default: ''
+  autoMatchOsTheme: true // default: true
+}
+const darkmode = new Darkmode(options);
+darkmode.showWidget();
+</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
 <script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/schemes/muse.js"></script><script src="/js/next-boot.js"></script>
 
@@ -398,6 +450,46 @@
 
 
 
+ 
 
+<script>
+  var OriginTitile = document.title;
+  var titleTime;
+  //换网站的logo
+  function selfSetIcon(url){
+        var links = document.getElementsByTagName('link') 
+        for (var i = 0; i < links.length; i++) { 
+            var link = links[i]
+            var rel = link.rel; 
+            var count = 0;
+            rel = rel.toLowerCase(); 
+            if (rel.indexOf('icon') == 0) { 
+                count++;
+                link.href = url;
+                if(count == 2)
+                    break;
+            }
+        }
+    }
+  
+  document.addEventListener("visibilitychange", function() {
+    if (document.hidden) {
+      document.title = "👀喔噢，崩溃啦~|" + OriginTitile;
+      selfSetIcon("/images/favicon-16x16-next.png");
+      clearTimeout(titleTime);
+    } else {
+      selfSetIcon("/images/favicon-32x32-next.png");
+      document.title = "φ(>ω<*) 咦！又好啦！|" + OriginTitile;
+      titleTime = setTimeout(function() {
+        document.title = OriginTitile;
+        
+      }, 2000);
+    }
+  });
+  
+</script>
+
+
+ <script type="text/javascript" src="/js/src/clicklove.js"></script>
 <script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"log":false,"model":{"scale":1,"hHeadPos":0.5,"vHeadPos":0.618,"jsonPath":"/live2dw/assets/wanko.model.json"},"display":{"superSample":2,"width":150,"height":300,"position":"right","hOffset":0,"vOffset":-10},"mobile":{"show":false,"scale":0.05},"react":{"opacityDefault":0.7,"opacityOnHover":0.2}});</script></body>
 </html>
