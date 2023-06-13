@@ -284,78 +284,15 @@
     <article class="col-12 col-md-12 mx-auto index-info">
       <h1 class="index-header">
         
-        <a href="/2023/05/24/kolla-ansible-deploy-openstack-train/" target="_self">
-          kolla-ansible 部署 openstack——train
+        <a href="/2023/05/24/1/" target="_self">
+          删除网卡自动分配的fix ip
         </a>
       </h1>
 
       
-      <a class="index-excerpt index-excerpt__noimg" href="/2023/05/24/kolla-ansible-deploy-openstack-train/" target="_self">
+      <a class="index-excerpt index-excerpt__noimg" href="/2023/05/24/1/" target="_self">
         <div>
-          系统：centos7，三节点kolla-ansible部署openstack——train
-        </div>
-      </a>
-
-      <div class="index-btm post-metas">
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-date"></i>
-            <time datetime="2023-05-24 16:18" pubdate>
-              2023-05-24
-            </time>
-          </div>
-        
-        
-          <div class="post-meta mr-3 d-flex align-items-center">
-            <i class="iconfont icon-category"></i>
-            
-
-<span class="category-chains">
-  
-  
-    
-      <span class="category-chain">
-        
-  <a href="/categories/openstack/" class="category-chain-item">openstack</a>
-  
-  
-
-      </span>
-    
-  
-</span>
-
-          </div>
-        
-        
-          <div class="post-meta">
-            <i class="iconfont icon-tags"></i>
-            
-              <a href="/tags/kolla/">#kolla</a>
-            
-              <a href="/tags/openstack/">#openstack</a>
-            
-          </div>
-        
-      </div>
-    </article>
-  </div>
-
-  <div class="row mx-auto index-card">
-    
-    
-    <article class="col-12 col-md-12 mx-auto index-info">
-      <h1 class="index-header">
-        
-        <a href="/2023/05/24/network/" target="_self">
-          Neutron-l3-agent
-        </a>
-      </h1>
-
-      
-      <a class="index-excerpt index-excerpt__noimg" href="/2023/05/24/network/" target="_self">
-        <div>
-          Neutron 的路由服务是由 l3 agent 提供的。 除此之外，l3 agent 通过 iptables 提供 firewall 和 floating ip 服务
+          当我们想要给云主机添加第二块无 IP 的网卡时，需要云主机挂载上新的网卡接口，但是在挂载接口时，时常会dhcp自动的分配一个ip地址，此时我们需要给他删除掉分配的地址，让他成为一个没有IP地址的网卡
         </div>
       </a>
 
@@ -509,15 +446,78 @@
     <article class="col-12 col-md-12 mx-auto index-info">
       <h1 class="index-header">
         
-        <a href="/2023/05/24/1/" target="_self">
-          删除网卡自动分配的fix ip
+        <a href="/2023/05/24/kolla-ansible-deploy-openstack-train/" target="_self">
+          kolla-ansible 部署 openstack——train
         </a>
       </h1>
 
       
-      <a class="index-excerpt index-excerpt__noimg" href="/2023/05/24/1/" target="_self">
+      <a class="index-excerpt index-excerpt__noimg" href="/2023/05/24/kolla-ansible-deploy-openstack-train/" target="_self">
         <div>
-          当我们想要给云主机添加第二块无 IP 的网卡时，需要云主机挂载上新的网卡接口，但是在挂载接口时，时常会dhcp自动的分配一个ip地址，此时我们需要给他删除掉分配的地址，让他成为一个没有IP地址的网卡
+          系统：centos7，三节点kolla-ansible部署openstack——train
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2023-05-24 16:18" pubdate>
+              2023-05-24
+            </time>
+          </div>
+        
+        
+          <div class="post-meta mr-3 d-flex align-items-center">
+            <i class="iconfont icon-category"></i>
+            
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/openstack/" class="category-chain-item">openstack</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/kolla/">#kolla</a>
+            
+              <a href="/tags/openstack/">#openstack</a>
+            
+          </div>
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h1 class="index-header">
+        
+        <a href="/2023/05/24/network/" target="_self">
+          Neutron-l3-agent
+        </a>
+      </h1>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/2023/05/24/network/" target="_self">
+        <div>
+          Neutron 的路由服务是由 l3 agent 提供的。 除此之外，l3 agent 通过 iptables 提供 firewall 和 floating ip 服务
         </div>
       </a>
 
