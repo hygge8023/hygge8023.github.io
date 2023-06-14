@@ -1,6 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>删除网卡自动分配的fix ip</title>
+    <url>/2023/05/24/1/</url>
+    <content><![CDATA[<p>当我们想要给云主机添加第二块无 IP 的网卡时，需要云主机挂载上新的网卡接口，但是在挂载接口时，时常会dhcp自动的分配一个ip地址，此时我们需要给他删除掉分配的地址，让他成为一个没有IP地址的网卡</p>
+<p>找出目标云主机的 port 列表（此处我需要移除 IP的是 192.168.2.6 ）</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack port list --server  1317ada5-231c-417f-9cc8-b6867591457e<br></code></pre></td></tr></table></figure>
+
+<p><img src="/2023/05/24/1/1.jpg"></p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack  server  remove port $server_id  $port_id<br>openstack port set $port_id   --no-fixed-ip<br>openstack  server  add port $server_id  $port_id<br>openstack port list --server  41350a43-bd76-45fc-92ff-283e01c124fa<br></code></pre></td></tr></table></figure>
+
+<p><img src="/2023/05/24/1/2.jpg"></p>
+]]></content>
+      <categories>
+        <category>openstack</category>
+      </categories>
+  </entry>
+  <entry>
     <title>OpenStack Neutron trunk ports</title>
     <url>/2023/05/28/Neutron-trunk%20ports/</url>
     <content><![CDATA[<p>​     OpenStack Neutron trunk ports （VLAN-aware-VMs）,”VLAN aware VMs”有时也叫做”VM trunk ports”, 主要是让虚拟机收发的vlan tagged报文, 能够被虚拟网络所识别和处理。</p>
@@ -107,41 +123,6 @@
       </tags>
   </entry>
   <entry>
-    <title>kolla-ansible 部署报错</title>
-    <url>/2023/05/24/kolla-ansible-issue/</url>
-    <content><![CDATA[<h2 id="问题现象："><a href="#问题现象：" class="headerlink" title="问题现象："></a>问题现象：</h2><p>环境：系统 centos7，通过 kolla-ansible 部署 train 版 Openstack，在 deploy 部署阶段执行到任务 </p>
-<p>TASK [service-rabbitmq : nova | Ensure RabbitMQ users exist] 报错 FAILED - RETRYING: nova | Ensure RabbitMQ users exist (5 retries left). 详情如下图：</p>
-<p><img src="/2023/05/24/kolla-ansible-issue/1.png"></p>
-<h2 id="问题分析："><a href="#问题分析：" class="headerlink" title="问题分析："></a>问题分析：</h2><p>查询相关博客给出的解决办法是清理部署环境，重新部署。但我清理多次部署还是会报错如上图。</p>
-<p>后谷歌相关资料，发现很多人部署都出现过这个问题，其实是 kolla-ansible 的一个bug，需要修改一下配置文件。并且This issue was fixed in the openstack/kolla-ansible 14.0.0.0rc1 release candidate.</p>
-<p><a href="https://bugs.launchpad.net/kolla-ansible/+bug/1946506">原文链接</a></p>
-<h2 id="解决办法："><a href="#解决办法：" class="headerlink" title="解决办法："></a>解决办法：</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">vi /usr/share/kolla-ansible/ansible/roles/service-rabbitmq/tasks/main.yml <br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">在第 21 行 添加如下代码</span><br><br>node: &quot;rabbit@&#123;&#123; ansible_facts.hostname &#125;&#125;&quot;<br></code></pre></td></tr></table></figure>
-
-<p>如图：</p>
-<p><img src="/2023/05/24/kolla-ansible-issue/2.jpeg"></p>
-<p>此时再去执行 deploy，安装成功 </p>
-]]></content>
-      <categories>
-        <category>openstack</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>删除网卡自动分配的fix ip</title>
-    <url>/2023/05/24/1/</url>
-    <content><![CDATA[<p>当我们想要给云主机添加第二块无 IP 的网卡时，需要云主机挂载上新的网卡接口，但是在挂载接口时，时常会dhcp自动的分配一个ip地址，此时我们需要给他删除掉分配的地址，让他成为一个没有IP地址的网卡</p>
-<p>找出目标云主机的 port 列表（此处我需要移除 IP的是 192.168.2.6 ）</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack port list --server  1317ada5-231c-417f-9cc8-b6867591457e<br></code></pre></td></tr></table></figure>
-
-<p><img src="/2023/05/24/1/1.jpg"></p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack  server  remove port $server_id  $port_id<br>openstack port set $port_id   --no-fixed-ip<br>openstack  server  add port $server_id  $port_id<br>openstack port list --server  41350a43-bd76-45fc-92ff-283e01c124fa<br></code></pre></td></tr></table></figure>
-
-<p><img src="/2023/05/24/1/2.jpg"></p>
-]]></content>
-      <categories>
-        <category>openstack</category>
-      </categories>
-  </entry>
-  <entry>
     <title>Neutron-l3-agent</title>
     <url>/2023/05/24/network/</url>
     <content><![CDATA[<p>Neutron 的路由服务是由 l3 agent 提供的。 除此之外，l3 agent 通过 iptables 提供 firewall 和 floating ip 服务</p>
@@ -214,6 +195,25 @@
 
 
 <p><a href="https://access.redhat.com/documentation/zh-cn/red_hat_openstack_platform/17.0/html/command_line_interface_reference/index">redhat官方openstack命令行文档</a></p>
+]]></content>
+      <categories>
+        <category>openstack</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>kolla-ansible 部署报错</title>
+    <url>/2023/05/24/kolla-ansible-issue/</url>
+    <content><![CDATA[<h2 id="问题现象："><a href="#问题现象：" class="headerlink" title="问题现象："></a>问题现象：</h2><p>环境：系统 centos7，通过 kolla-ansible 部署 train 版 Openstack，在 deploy 部署阶段执行到任务 </p>
+<p>TASK [service-rabbitmq : nova | Ensure RabbitMQ users exist] 报错 FAILED - RETRYING: nova | Ensure RabbitMQ users exist (5 retries left). 详情如下图：</p>
+<p><img src="/2023/05/24/kolla-ansible-issue/1.png"></p>
+<h2 id="问题分析："><a href="#问题分析：" class="headerlink" title="问题分析："></a>问题分析：</h2><p>查询相关博客给出的解决办法是清理部署环境，重新部署。但我清理多次部署还是会报错如上图。</p>
+<p>后谷歌相关资料，发现很多人部署都出现过这个问题，其实是 kolla-ansible 的一个bug，需要修改一下配置文件。并且This issue was fixed in the openstack/kolla-ansible 14.0.0.0rc1 release candidate.</p>
+<p><a href="https://bugs.launchpad.net/kolla-ansible/+bug/1946506">原文链接</a></p>
+<h2 id="解决办法："><a href="#解决办法：" class="headerlink" title="解决办法："></a>解决办法：</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">vi /usr/share/kolla-ansible/ansible/roles/service-rabbitmq/tasks/main.yml <br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">在第 21 行 添加如下代码</span><br><br>node: &quot;rabbit@&#123;&#123; ansible_facts.hostname &#125;&#125;&quot;<br></code></pre></td></tr></table></figure>
+
+<p>如图：</p>
+<p><img src="/2023/05/24/kolla-ansible-issue/2.jpeg"></p>
+<p>此时再去执行 deploy，安装成功 </p>
 ]]></content>
       <categories>
         <category>openstack</category>
