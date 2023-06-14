@@ -36,71 +36,6 @@
       </categories>
   </entry>
   <entry>
-    <title>kolla-ansible 部署报错</title>
-    <url>/2023/05/24/kolla-ansible-issue/</url>
-    <content><![CDATA[<h2 id="问题现象："><a href="#问题现象：" class="headerlink" title="问题现象："></a>问题现象：</h2><p>环境：系统 centos7，通过 kolla-ansible 部署 train 版 Openstack，在 deploy 部署阶段执行到任务 </p>
-<p>TASK [service-rabbitmq : nova | Ensure RabbitMQ users exist] 报错 FAILED - RETRYING: nova | Ensure RabbitMQ users exist (5 retries left). 详情如下图：</p>
-<p><img src="/2023/05/24/kolla-ansible-issue/1.png"></p>
-<h2 id="问题分析："><a href="#问题分析：" class="headerlink" title="问题分析："></a>问题分析：</h2><p>查询相关博客给出的解决办法是清理部署环境，重新部署。但我清理多次部署还是会报错如上图。</p>
-<p>后谷歌相关资料，发现很多人部署都出现过这个问题，其实是 kolla-ansible 的一个bug，需要修改一下配置文件。并且This issue was fixed in the openstack/kolla-ansible 14.0.0.0rc1 release candidate.</p>
-<p><a href="https://bugs.launchpad.net/kolla-ansible/+bug/1946506">原文链接</a></p>
-<h2 id="解决办法："><a href="#解决办法：" class="headerlink" title="解决办法："></a>解决办法：</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">vi /usr/share/kolla-ansible/ansible/roles/service-rabbitmq/tasks/main.yml <br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">在第 21 行 添加如下代码</span><br><br>node: &quot;rabbit@&#123;&#123; ansible_facts.hostname &#125;&#125;&quot;<br></code></pre></td></tr></table></figure>
-
-<p>如图：</p>
-<p><img src="/2023/05/24/kolla-ansible-issue/2.jpeg"></p>
-<p>此时再去执行 deploy，安装成功 </p>
-]]></content>
-      <categories>
-        <category>openstack</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>openstack常用命令整理</title>
-    <url>/2023/05/24/openstack/</url>
-    <content><![CDATA[<h2 id="配额-「quota」"><a href="#配额-「quota」" class="headerlink" title="配额 「quota」"></a>配额 「quota」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack quota set --ram 1024 --instances 5 --cores 3 &#123;项目名&#125;     # 项目限制配额<br></code></pre></td></tr></table></figure>
-
-<h2 id="虚拟机-「server」"><a href="#虚拟机-「server」" class="headerlink" title="虚拟机 「server」"></a>虚拟机 「server」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack console url show &#123;虚拟机名字&#125;<br>openstack server delete &#123;虚拟机名字&#125;<br>openstack server force-delete &#123;虚拟机名字&#125;       # 强制删除虚机<br>openstack server list / show  <br>openstack server resize      # 调整云主机大小<br>openstack server event list --long &#123;虚拟机 id&#125;    # 查询云主机的事件<br></code></pre></td></tr></table></figure>
-
-<h2 id="搁置-「shelve」"><a href="#搁置-「shelve」" class="headerlink" title="搁置 「shelve」"></a>搁置 「shelve」</h2><p>对于一些长时间不使用的虚拟机，即使处于关机状态，仍然会占用着集群资源<br>如果需要释放这些资源,则使用shelve来操作,该操作会将server实例作为image保存到glance中,然后在宿主机中删除该server实例</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack server shelve &#123;虚机id&#125;  # 机器开启搁置状态 （搁置状态：--status SHELVED_OFFLOADED ）<br>openstack server unshelve     # 取消搁置的机器<br></code></pre></td></tr></table></figure>
-
-<h2 id="镜像-「image」"><a href="#镜像-「image」" class="headerlink" title="镜像 「image」"></a>镜像 「image」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">共享私有镜像给其他项目<br><br>openstack image set --shared &#123;镜像id&#125;    # 镜像设置为共享<br>openstack image add project  &#123;镜像id&#125;  &#123;目标项目id&#125; <br>openstack role add --user &#123;&#125;  project_member --project  &#123;目标项目id&#125; <br><br>export OS_PROJECT_NAME=&#123;目标项目名&#125;       # 切换项目<br>openstack image set --accept &#123;目标镜像id&#125; <br>export OS_PROJECT_NAME=&#123;&#125;<br>openstack role remove --user &#123;&#125; project_member --project &#123;目标项目id&#125;<br><br>openstack image member list &#123;目标镜像id&#125;     # 验证是否共享成功<br><br>openstack image set  # 更新镜像<br></code></pre></td></tr></table></figure>
-
-
-
-<h2 id="网络-「network」"><a href="#网络-「network」" class="headerlink" title="网络 「network」"></a>网络 「network」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack floating ip list <br><br>云主机添加无IP的网卡<br>openstack network list --project &#123;项目名&#125;    # 查看项目下网络<br><br>openstack port create  --network  &#123;网络id/name&#125;   &#123;端口名&#125;     在不指定IP地址的情况下创建一个端口<br><br>创建指定IP地址的端口<br>openstack port create --network net1 --fixed-ip subnet=subnet1,ip-address=192.0.2.40 &#123;端口名&#125;  <br><br>openstack port list <br>nova interface-attach --port-id  &#123;port id&#125;   &#123;server id&#125;   <br></code></pre></td></tr></table></figure>
-
-
-
-<h2 id="支付者-「assignment」"><a href="#支付者-「assignment」" class="headerlink" title="支付者 「assignment」"></a>支付者 「assignment」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack role assignment list  --project  &#123;项目名&#125;  --name  # 查看用户的支付者<br></code></pre></td></tr></table></figure>
-
-
-
-<h2 id="卷-「volume」"><a href="#卷-「volume」" class="headerlink" title="卷  「volume」"></a>卷  「volume」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack volume type list   # 查看卷类型<br>openstack volume set --state &#123;&#125;     # 改变云硬盘状态  <br>openstack volume backup list   # 查看云硬盘备份<br>openstack volume snapshot list --all --volume &#123; id/name &#125;<br><br>nova  volume-detach  &#123;云主机ID&#125; &#123;volume id&#125;     # 分离卷<br></code></pre></td></tr></table></figure>
-
-<p>Volume 除了可以用作 instance 的数据盘，也可以作为启动盘（Bootable Volume）创建Volume时，选择Volume Source为image，创建后可以看到该volume是Bootable的，后可根据需求创建可启动volume</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack volume create --image $IMAGE_ID --size $SIZE --type $TYPE --bootable $NAME<br></code></pre></td></tr></table></figure>
-
-
-
-<h2 id="迁移-「migrate」"><a href="#迁移-「migrate」" class="headerlink" title="迁移  「migrate」"></a>迁移  「migrate」</h2><p>迁移的云主机若内存等资源使用率过高会导致热迁移实例写入内存页面的速度可能比复制它们的速度快<br>从而虚拟机产生了内存脏数据,无法完成迁移超时,虚拟机状态error</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">nova live-migration-force-complete 实例ID 迁移ID        # 强制迁移<br>nova server-migration-list 实例ID                  # 获取迁移的任务ID<br>nova live-migration-abort 实例ID 迁移ID                 # 取消迁移<br></code></pre></td></tr></table></figure>
-
-
-
-<h2 id="负载均衡-「loadbalancer」"><a href="#负载均衡-「loadbalancer」" class="headerlink" title="负载均衡  「loadbalancer」"></a>负载均衡  「loadbalancer」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack loadbalancer list<br></code></pre></td></tr></table></figure>
-
-
-
-
-
-<p><a href="https://access.redhat.com/documentation/zh-cn/red_hat_openstack_platform/17.0/html/command_line_interface_reference/index">redhat官方openstack命令行文档</a></p>
-]]></content>
-      <categories>
-        <category>openstack</category>
-      </categories>
-  </entry>
-  <entry>
     <title>kolla-ansible 部署 openstack——train</title>
     <url>/2023/05/24/kolla-ansible-deploy-openstack-train/</url>
     <content><![CDATA[<h1 id="环境介绍"><a href="#环境介绍" class="headerlink" title="环境介绍"></a>环境介绍</h1><p>系统：centos7<br>三台云主机</p>
@@ -188,6 +123,25 @@
       </tags>
   </entry>
   <entry>
+    <title>kolla-ansible 部署报错</title>
+    <url>/2023/05/24/kolla-ansible-issue/</url>
+    <content><![CDATA[<h2 id="问题现象："><a href="#问题现象：" class="headerlink" title="问题现象："></a>问题现象：</h2><p>环境：系统 centos7，通过 kolla-ansible 部署 train 版 Openstack，在 deploy 部署阶段执行到任务 </p>
+<p>TASK [service-rabbitmq : nova | Ensure RabbitMQ users exist] 报错 FAILED - RETRYING: nova | Ensure RabbitMQ users exist (5 retries left). 详情如下图：</p>
+<p><img src="/2023/05/24/kolla-ansible-issue/1.png"></p>
+<h2 id="问题分析："><a href="#问题分析：" class="headerlink" title="问题分析："></a>问题分析：</h2><p>查询相关博客给出的解决办法是清理部署环境，重新部署。但我清理多次部署还是会报错如上图。</p>
+<p>后谷歌相关资料，发现很多人部署都出现过这个问题，其实是 kolla-ansible 的一个bug，需要修改一下配置文件。并且This issue was fixed in the openstack/kolla-ansible 14.0.0.0rc1 release candidate.</p>
+<p><a href="https://bugs.launchpad.net/kolla-ansible/+bug/1946506">原文链接</a></p>
+<h2 id="解决办法："><a href="#解决办法：" class="headerlink" title="解决办法："></a>解决办法：</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">vi /usr/share/kolla-ansible/ansible/roles/service-rabbitmq/tasks/main.yml <br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">在第 21 行 添加如下代码</span><br><br>node: &quot;rabbit@&#123;&#123; ansible_facts.hostname &#125;&#125;&quot;<br></code></pre></td></tr></table></figure>
+
+<p>如图：</p>
+<p><img src="/2023/05/24/kolla-ansible-issue/2.jpeg"></p>
+<p>此时再去执行 deploy，安装成功 </p>
+]]></content>
+      <categories>
+        <category>openstack</category>
+      </categories>
+  </entry>
+  <entry>
     <title>Neutron-l3-agent</title>
     <url>/2023/05/24/network/</url>
     <content><![CDATA[<p>Neutron 的路由服务是由 l3 agent 提供的。 除此之外，l3 agent 通过 iptables 提供 firewall 和 floating ip 服务</p>
@@ -214,6 +168,52 @@
 
 
 
+]]></content>
+      <categories>
+        <category>openstack</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>openstack常用命令整理</title>
+    <url>/2023/05/24/openstack/</url>
+    <content><![CDATA[<h2 id="配额-「quota」"><a href="#配额-「quota」" class="headerlink" title="配额 「quota」"></a>配额 「quota」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack quota set --ram 1024 --instances 5 --cores 3 &#123;项目名&#125;     # 项目限制配额<br></code></pre></td></tr></table></figure>
+
+<h2 id="虚拟机-「server」"><a href="#虚拟机-「server」" class="headerlink" title="虚拟机 「server」"></a>虚拟机 「server」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack console url show &#123;虚拟机名字&#125;<br>openstack server delete &#123;虚拟机名字&#125;<br>openstack server force-delete &#123;虚拟机名字&#125;       # 强制删除虚机<br>openstack server list / show  <br>openstack server resize      # 调整云主机大小<br>openstack server event list --long &#123;虚拟机 id&#125;    # 查询云主机的事件<br></code></pre></td></tr></table></figure>
+
+<h2 id="搁置-「shelve」"><a href="#搁置-「shelve」" class="headerlink" title="搁置 「shelve」"></a>搁置 「shelve」</h2><p>对于一些长时间不使用的虚拟机，即使处于关机状态，仍然会占用着集群资源<br>如果需要释放这些资源,则使用shelve来操作,该操作会将server实例作为image保存到glance中,然后在宿主机中删除该server实例</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack server shelve &#123;虚机id&#125;  # 机器开启搁置状态 （搁置状态：--status SHELVED_OFFLOADED ）<br>openstack server unshelve     # 取消搁置的机器<br></code></pre></td></tr></table></figure>
+
+<h2 id="镜像-「image」"><a href="#镜像-「image」" class="headerlink" title="镜像 「image」"></a>镜像 「image」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">共享私有镜像给其他项目<br><br>openstack image set --shared &#123;镜像id&#125;    # 镜像设置为共享<br>openstack image add project  &#123;镜像id&#125;  &#123;目标项目id&#125; <br>openstack role add --user &#123;&#125;  project_member --project  &#123;目标项目id&#125; <br><br>export OS_PROJECT_NAME=&#123;目标项目名&#125;       # 切换项目<br>openstack image set --accept &#123;目标镜像id&#125; <br>export OS_PROJECT_NAME=&#123;&#125;<br>openstack role remove --user &#123;&#125; project_member --project &#123;目标项目id&#125;<br><br>openstack image member list &#123;目标镜像id&#125;     # 验证是否共享成功<br><br>openstack image set  # 更新镜像<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="网络-「network」"><a href="#网络-「network」" class="headerlink" title="网络 「network」"></a>网络 「network」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack floating ip list <br><br>云主机添加无IP的网卡<br>openstack network list --project &#123;项目名&#125;    # 查看项目下网络<br><br>openstack port create  --network  &#123;网络id/name&#125;   &#123;端口名&#125;     在不指定IP地址的情况下创建一个端口<br><br>创建指定IP地址的端口<br>openstack port create --network net1 --fixed-ip subnet=subnet1,ip-address=192.0.2.40 &#123;端口名&#125;  <br><br>openstack port list <br>nova interface-attach --port-id  &#123;port id&#125;   &#123;server id&#125;   <br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="支付者-「assignment」"><a href="#支付者-「assignment」" class="headerlink" title="支付者 「assignment」"></a>支付者 「assignment」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack role assignment list  --project  &#123;项目名&#125;  --name  # 查看用户的支付者<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="卷-「volume」"><a href="#卷-「volume」" class="headerlink" title="卷  「volume」"></a>卷  「volume」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack volume type list   # 查看卷类型<br>openstack volume set --state &#123;&#125;     # 改变云硬盘状态  <br>openstack volume backup list   # 查看云硬盘备份<br>openstack volume snapshot list --all --volume &#123; id/name &#125;<br><br>nova  volume-detach  &#123;云主机ID&#125; &#123;volume id&#125;     # 分离卷<br></code></pre></td></tr></table></figure>
+
+<p>Volume 除了可以用作 instance 的数据盘，也可以作为启动盘（Bootable Volume）创建Volume时，选择Volume Source为image，创建后可以看到该volume是Bootable的，后可根据需求创建可启动volume</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack volume create --image $IMAGE_ID --size $SIZE --type $TYPE --bootable $NAME<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="迁移-「migrate」"><a href="#迁移-「migrate」" class="headerlink" title="迁移  「migrate」"></a>迁移  「migrate」</h2><p>迁移的云主机若内存等资源使用率过高会导致热迁移实例写入内存页面的速度可能比复制它们的速度快<br>从而虚拟机产生了内存脏数据,无法完成迁移超时,虚拟机状态error</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">nova live-migration-force-complete 实例ID 迁移ID        # 强制迁移<br>nova server-migration-list 实例ID                  # 获取迁移的任务ID<br>nova live-migration-abort 实例ID 迁移ID                 # 取消迁移<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="负载均衡-「loadbalancer」"><a href="#负载均衡-「loadbalancer」" class="headerlink" title="负载均衡  「loadbalancer」"></a>负载均衡  「loadbalancer」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack loadbalancer list<br></code></pre></td></tr></table></figure>
+
+
+
+
+
+<p><a href="https://access.redhat.com/documentation/zh-cn/red_hat_openstack_platform/17.0/html/command_line_interface_reference/index">redhat官方openstack命令行文档</a></p>
 ]]></content>
       <categories>
         <category>openstack</category>
