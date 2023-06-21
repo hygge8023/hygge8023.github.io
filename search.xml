@@ -1,16 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>删除网卡自动分配的fix ip</title>
-    <url>/2023/05/24/1/</url>
-    <content><![CDATA[<p>当我们想要给云主机添加第二块无 IP 的网卡时，需要云主机挂载上新的网卡接口，但是在挂载接口时，时常会dhcp自动的分配一个ip地址，此时我们需要给他删除掉分配的地址，让他成为一个没有IP地址的网卡</p>
-<p>找出目标云主机的 port 列表（此处我需要移除 IP的是 192.168.2.6 ）</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack port list --server  1317ada5-231c-417f-9cc8-b6867591457e<br></code></pre></td></tr></table></figure>
+    <title>ceph-ansible部署详解</title>
+    <url>/2023/06/21/ceph-ansible/</url>
+    <content><![CDATA[<blockquote>
+<p>官网链接：<a href="https://github.com/ceph/ceph-ansible/">https://github.com/ceph/ceph-ansible/</a></p>
+<p>官网安装手册：<a href="https://docs.ceph.com/projects/ceph-ansible/en/latest/">https://docs.ceph.com/projects/ceph-ansible/en/latest/</a></p>
+<p>Red Hat Ceph：<a href="https://access.redhat.com/documentation/zh-cn/red_hat_ceph_storage/6">https://access.redhat.com/documentation/zh-cn/red_hat_ceph_storage/6</a></p>
+</blockquote>
+<h2 id="1、主机组说明"><a href="#1、主机组说明" class="headerlink" title="1、主机组说明"></a>1、主机组说明</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">[mons]   作为Monitor节点<br><br><br>[mgrs]   作为MGR节点<br><br><br>[osds]   作为OSD节点，具体OSD配置在osds.yml文件中配置<br><br><br>[mdss]   作为MDS节点，文件存储中需要指定<br><br><br>[rgws]   作为RGW节点，对象存储中需要指定<br><br><br>[clients]   作为客户端节点<br><br><br>[grafana-server]<br>一般需要保留该参数，不然会报缺少的错误<br></code></pre></td></tr></table></figure>
 
-<p><img src="/2023/05/24/1/1.jpg"></p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack  server  remove port $server_id  $port_id<br>openstack port set $port_id   --no-fixed-ip<br>openstack  server  add port $server_id  $port_id<br>openstack port list --server  41350a43-bd76-45fc-92ff-283e01c124fa<br></code></pre></td></tr></table></figure>
 
-<p><img src="/2023/05/24/1/2.jpg"></p>
+
+<h2 id="2、配置项说明"><a href="#2、配置项说明" class="headerlink" title="2、配置项说明"></a>2、配置项说明</h2><p><code> ceph_origin:</code>   指定 ceph 安装源，目前支持 3 种主要安装方法  repository、distro、local </p>
+<ul>
+<li><p>repository:  使用仓库源，若指定此项，则须配置以下配置项：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell"><span class="hljs-meta prompt_"># </span><span class="language-bash">表示使用ceph社区的版本，ceph-ansible也可以安装rhcs等厂家发行的版本</span><br>ceph_repository: community<br>ceph_mirror: http://mirrors.163.com/ceph<br>ceph_stable_release: octopus   <br></code></pre></td></tr></table></figure></li>
+<li><p>distro:  表示不自动配置源</p>
+</li>
+<li><p>local :  表示从本地计算机——即ceph-admin节点去复制ceph二进制文件分发至其他节点</p>
+</li>
+</ul>
+<p><code>configure_firewall: </code>   是否配置防火墙，如果设置为true，ceph-ansible会自动去配置集群内组件相互通信所需的防火墙规则，默认情况下，Ansible 会尝试重启已安装但屏蔽的 firewalld 服务，这可能会导致Ceph Storage 部署失败。要临时解决这个问题，请在将 <code>configure_firewall</code> 选项设置为 <code>false</code></p>
+<p><code>osd_scenario:</code>   </p>
+<ul>
+<li><p>collocated: 使用相同的设备进行写入日志记录和键/值数据(BlueStore)或日志(FileStore)和 OSD 数据</p>
+</li>
+<li><p>non-collocated:  为使用专用设备，如 SSD 或 NVMe 介质，以存储 write-ahead 日志和键/值数据(BlueStore)或日志数据(FileStore)</p>
+</li>
+<li><p>LVM: 使用逻辑卷管理器存储 OSD 数据</p>
+</li>
+</ul>
+<p><code>lvm_volumes:</code>   FileStore 或 BlueStore 字典列表：如果使用 <code>osd_scenario: lvm</code>且存储设备没有使用 <code>devices</code>定义 时为 Yes</p>
+<figure class="highlight dts"><table><tr><td class="code"><pre><code class="hljs dts">OSD 方案 示例：<br><span class="hljs-symbol"></span><br><span class="hljs-symbol">osd_objectstore:</span> bluestore<br><span class="hljs-symbol">osd_scenario:</span> lvm<br><span class="hljs-symbol">devices:</span><br>  - <span class="hljs-keyword">/dev/</span>sda<br>  - <span class="hljs-keyword">/dev/</span>sdb<br></code></pre></td></tr></table></figure>
+
+
+
+<p><code>osd_objectstore:  </code>    可选 filestore bluestore SeaStore</p>
+<p>SeaStore面向全NVME场景设计<br>对象存储引擎，如有必要可以将其更改为filestore</p>
+<p><code>osd_auto_discovery: true</code>   </p>
+<p>是否启用OSD设备自动发现，如果这个选项设置为true，将不再需要填写osds.yml中的device设置<br>因为ceph-ansible将会使用ansible_devices发现的所有可用的块设备,已有分区表的设备将不会被使用<br>因此默认不会将系统盘做成OSD</p>
+<p><code>osd_auto_discovery_exclude</code>   用于设置一个规则来排除指定的设备做成 osd </p>
+<p>例如：rbd* 表示所有rbd开头的设备将不会被自动创建为osd</p>
+<p><code>crush_rule_config:</code>  设置为 <code>True</code>  自定义 CRUSH 规则</p>
+<p><strong>HDD</strong> 设备，请按如下所示编辑参数：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><code class="hljs none">crush_rule_config: True<br>crush_rule_hdd:<br>    name: replicated_hdd_rule<br>    root: root-hdd<br>    type: host<br>    class: hdd<br>    default: True<br>crush_rules:<br>  - &quot;&#123;&#123; crush_rule_hdd &#125;&#125;&quot;<br>create_crush_tree: True<br></code></pre></td></tr></table></figure>
+
+<p>如果使用 <strong>SSD</strong> 设备，请按如下所示编辑参数：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><code class="hljs none">crush_rule_config: True<br>crush_rule_ssd:<br>    name: replicated_ssd_rule<br>    root: root-ssd<br>    type: host<br>    class: ssd<br>    default: True<br>crush_rules:<br>  - &quot;&#123;&#123; crush_rule_ssd &#125;&#125;&quot;<br>create_crush_tree: True<br></code></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="3、配置文件"><a href="#3、配置文件" class="headerlink" title="3、配置文件"></a>3、配置文件</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">cat &gt;&gt; /opt/openstack/ceph-deploy.yml &lt;&lt;EOF<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_">#</span><span class="language-bash"><span class="hljs-comment">###########下载包相关的源配置###############</span></span><br>cephx: true<br>ceph_origin: distro<br>configure_firewall: false<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_">#</span><span class="language-bash"><span class="hljs-comment">###########创建osd必要的参数###############</span></span><br>osd_scenario: lvm<br>osd_objectstore: bluestore<br>osd_auto_discovery: true<br>block_db_size: -1  # 显式设置 db 空间大小，单位为 bytes，默认 -1 为平分空间<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">根据实际情况填写</span><br>public_network: &quot;192.168.100.0/24&quot;<br>cluster_network: &quot;192.168.100.0/24&quot;<br>monitor_interface: eth0<br>ntp_service_enabled: false<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_">#</span><span class="language-bash">dashboard_enabled: <span class="hljs-literal">false</span></span><br>dashboard_admin_password: 12345678<br>grafana_admin_password: 12345678<br><br>crush_rule_config: true<br>crush_rule_hdd:<br>  name: hdd<br>  root: default<br>  type: host<br>  class: hdd<br>  default: false<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_">#</span><span class="language-bash">crush_rule_ssd:</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash"> name: ssd</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash"> root: default</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash"> <span class="hljs-built_in">type</span>: host</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash"> default: <span class="hljs-literal">false</span></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash"> class: ssd</span><br>crush_rules:<br>  - &quot;&#123;&#123; crush_rule_hdd &#125;&#125;&quot;<br><span class="hljs-meta prompt_"># </span><span class="language-bash"> - <span class="hljs-string">&quot;&#123;&#123; crush_rule_ssd &#125;&#125;&quot;</span></span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_">#</span><span class="language-bash">lvm_volumes:</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash"> - data: /dev/sda</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">   crush_device_class: ssd</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash"> - data: /dev/sdb</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">   crush_device_class: ssd</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash"> - data: /dev/sdc</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">   crush_device_class: ssd</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash"> - data: /dev/sdd</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">   crush_device_class: ssd</span><br>  - data: /dev/sde<br>    crush_device_class: hdd<br>  - data: /dev/sdf<br>    crush_device_class: hdd<br><br><br><br><br>openstack_config: true<br><br>openstack_glance_pool:<br>  name: &quot;images&quot;<br>  application: &quot;rbd&quot;<br>  pg_autoscale_mode: &quot;on&quot;<br>  target_size_ratio: 0.2<br>  <br>openstack_nova_pool:<br>  name: &quot;vms&quot;<br>  application: &quot;rbd&quot; # 存储类型rbd块存储<br>  pg_autoscale_mode: &quot;on&quot; # pg_autoscale模块将根据pool的实际容量调整pg_num数。<br>  target_size_ratio: 0.1 # 设置某个pool占用的集群容量百分比<br>  <br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_">#</span><span class="language-bash">openstack_cinder_ssd_pool:</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash"> name: <span class="hljs-string">&quot;ssd-volumes&quot;</span></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash"> rule_name: <span class="hljs-string">&quot;&#123;&#123; crush_rule_ssd.name &#125;&#125;&quot;</span></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash"> application: <span class="hljs-string">&quot;rbd&quot;</span></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash"> pg_autoscale_mode: <span class="hljs-string">&quot;on&quot;</span></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash"> target_size_ratio: 1.0</span><br><br>openstack_cinder_hdd_pool:<br>  name: &quot;hdd-volumes&quot;<br>  rule_name: &quot;&#123;&#123; crush_rule_hdd.name &#125;&#125;&quot;<br>  application: &quot;rbd&quot;<br>  pg_autoscale_mode: &quot;on&quot;<br>  target_size_ratio: 1.0<br>  <br>openstack_pools:<br>  - &quot;&#123;&#123; openstack_glance_pool &#125;&#125;&quot;<br>  - &quot;&#123;&#123; openstack_cinder_hdd_pool &#125;&#125;&quot;<br>  - &quot;&#123;&#123; openstack_nova_pool &#125;&#125;&quot;<br><span class="hljs-meta prompt_"># </span><span class="language-bash"> - <span class="hljs-string">&quot;&#123;&#123; openstack_cinder_ssd_pool &#125;&#125;&quot;</span></span><br>openstack_keys:<br>  - &#123; name: client.glance, caps: &#123; mon: &quot;profile rbd&quot;, osd: &quot;profile rbd&quot;&#125;, mode: &quot;0600&quot; &#125;<br>  - &#123; name: client.cinder, caps: &#123; mon: &quot;profile rbd&quot;, osd: &quot;profile rbd&quot;&#125;, mode: &quot;0600&quot; &#125;<br>EOF<br></code></pre></td></tr></table></figure>
+
+
+
+]]></content>
+      <categories>
+        <category>ceph</category>
+      </categories>
+      <tags>
+        <tag>ceph</tag>
+        <tag>ceph-ansible</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Neutron-l3-agent</title>
+    <url>/2023/06/21/Neutron-l3-agent/</url>
+    <content><![CDATA[<p>Neutron 的路由服务是由 l3 agent 提供的。 除此之外，l3 agent 通过 iptables 提供 firewall 和 floating ip 服务</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell"><span class="hljs-meta prompt_">$ </span><span class="language-bash">openstack network agent list --host network01</span><br>+--------------------------------------+--------------------+------------+-------------------+-------+-------+---------------------------+<br>| ID                                   | Agent Type         | Host       | Availability Zone | Alive | State | Binary                    |<br>+--------------------------------------+--------------------+------------+-------------------+-------+-------+---------------------------+<br>| 178352d1-b827-402b-8ac8-f2529f8c0079 | Metadata agent     | network01 | None              | :-)   | UP    | neutron-metadata-agent    |<br>| 4ace5ae6-ce68-4dfb-85b9-7e1ca139c21f | DHCP agent         | network01 | nova              | :-)   | UP    | neutron-dhcp-agent        |<br>| 90a46a2a-80cf-400f-a5fd-a620155c0a4c | Open vSwitch agent | network01 | None              | :-)   | UP    | neutron-openvswitch-agent |<br>| fac20f42-457a-486f-92c8-1d3eb6f1c39e | L3 agent           | network01 | nova              | :-)   | UP    | neutron-vpn-agent         |<br>+--------------------------------------+--------------------+------------+-------------------+-------+-------+---------------------------+<br></code></pre></td></tr></table></figure>
+
+<p>根据 路由id 可以找到本 router 所在的网络节点</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell"><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_">$ </span><span class="language-bash">openstack router list  --project <span class="hljs-built_in">test</span></span><br>+--------------------------------------+----------------+--------+-------+----------------------------------+-------------+------+<br>| ID                                   | Name           | Status | State | Project                          | Distributed | HA   |<br>+--------------------------------------+----------------+--------+-------+----------------------------------+-------------+------+<br>| 2878b574-9793-45a5-bf39-04e1092fb697 | Default Router | ACTIVE | UP    | 8923b95c43414065a7dcfee1f4d6477b | False       | True |<br>+--------------------------------------+----------------+--------+-------+----------------------------------+-------------+------+<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">获取该路由上的 业务 IP</span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_">$ </span><span class="language-bash">openstack floating ip list --router 2878b574-9793-45a5-bf39-04e1092fb697</span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">环境为高可用主备router节点，HA State 为 standby 表示待用状态</span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_">$ </span><span class="language-bash">openstack network agent list --router 2878b574-9793-45a5-bf39-04e1092fb697 --long</span><br>+--------------------------------------+------------+------------+-------------------+-------+-------+-------------------+----------+<br>| ID                                   | Agent Type | Host       | Availability Zone | Alive | State | Binary            | HA State |<br>+--------------------------------------+------------+------------+-------------------+-------+-------+-------------------+----------+<br>| 8add8415-5956-462a-93d1-e9a97c7a3cbe | L3 agent   | network02 | nova              | :-)   | UP    | neutron-vpn-agent | active   |<br>| e123a05b-fe85-4207-b0aa-ff2a3a9169e4 | L3 agent   | network03 | nova              | :-)   | UP    | neutron-vpn-agent | standby  |<br>+--------------------------------------+------------+------------+-------------------+-------+-------+-------------------+----------+<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_">[root@network02~]# </span><span class="language-bash">ip netns <span class="hljs-built_in">ls</span>  |grep  2878b574-9793-45a5-bf39-04e1092fb697</span><br>qrouter-2878b574-9793-45a5-bf39-04e1092fb697 (id: 36)<br><br><br></code></pre></td></tr></table></figure>
 ]]></content>
       <categories>
         <category>openstack</category>
@@ -20,31 +83,27 @@
       </tags>
   </entry>
   <entry>
-    <title>Neutron-l3-agent</title>
-    <url>/2023/05/24/Neutron-l3-agent/</url>
-    <content><![CDATA[<div class="hbe hbe-container" id="hexo-blog-encrypt" data-wpm="抱歉, 这个密码对哈, 请再试试或者联系管理员" data-whm="OOPS, these decrypted content may changed, but you can still have a look.">
-  <script id="hbeData" type="hbeData" data-hmacdigest="ea5ef6321699a65adba3996c479a070526580ad172bd54904815c1a83a0f3d3d">0c8c0c54bff21ef7c09c278b65b38916110539cc29f84561de09453ca48d8dda922a237452f89f95847e475f7bf42f9b6a70d0d77c5728520b30bc255dc9517b3ac7a886a390cebec63c1e1a3398167dceea5c851a5651c58b7c9a21dbd32797ea3c9a1f95c5640c82c2ac3a8b88e09d623c6a4e8684094677ada9b41797c2bdfd0c46d27650e444779330bf56fa1f1c28f24971825453e45907268d192fcadd86b2faf02b85a628a3351e42e7d7db1246ac5dc576de1f16e73f6576e6ad9e529596ce9e713803c275e023bac079e0703dfd06a3f0a6a2cb35caaf229f1575aa0dace5106daca75104833f398f486c448a9db969b6021284bd5be03b90dd9c7e9ec332ff98801d308182a356e9a66657aae41a9ddf0cbdd380d29e02e3e3054f5d9fc2e9ea1b41c090e38a09aa6f4dbc3570d5134fccca831098e57c5d4a421e10853a67f769314f6c024df43e8f38e0a479c03769759a064a3bffe02650a4407b5ff6bf56fcd28228b0cf67ee1eac1e5befc2377b28f3b61b69d5c3db77b872b6fca87258c30290f4414408b3e5af5f666cc87cf6a8f2afa7023e7d4c6edad50dd92e4024d35deb2c680f3c1f8f7c5e9ef3153c626713af55c549c5e46ccf2efde7410d83e4305ff6a7a1bf175b891552c8b6c946ddf5c46944952d19e5a5f8301ba39324aff4f4fa638d6ed60126b32c21f5432eb739d123d72fa97f697727e104ae13054a6babaa341c15da8c0e4a545d9b850e0b8be91433f35ed16b464ac5f9b13a60e84c3f874d2c010ff2e9d5360dac5590d2585527af27a0a0354db38612f842a8ecb3f8edcce5716e5842aa71b81b35cafed1e30d00d3eb48a379bd677b55d6baee72687d39c6e5b053ddae6b89a7ce709b1aa109612cf70b636333fa63e4ecaf206b0066d86b2f9085c22abab4b231a35a890579c87061edf5105c16a38d9353384459274bc8d53698c7c355e2be2f342c358c452fa523b2e7e839948834a49b846c02beb78448315e0e4a2b94c25888c92a7b1a4765d8d899a162288cc76eccc1a81fd7311c477a168428f24826006aca23b3b06ad8e47fab2ced1db60aa6ae59e888d48180ba4a0238c141ae8a89aacf9b60bea9c8eaf7fa347667d885eb833304e087c34592a23d6a833c6ec02a28eb8f3ca6ef5a876e9b5d19617eb391bc861d9b24327905a471c62ec941f0c8feeb49a1607c83e39ab2fa4e7a20d59455a6b55ef22c4c6c98d4102842129ed9641ab894aa8ca9f60bc6656de3c2fd45398541fd47b45f037015c8bf498af19cb46f6f9cb760f11623799b67ec72d89ac34c4a6342906bd4703733d64ea7a3fbd5525283b0ed1182790dc57c310d40ef19b969a25b220779538b8b4d05471f39d0a57dfd78cfd9ef5d67ffebb20e7341b48df0c9530a82c790adb708e8491479f2918c35ebd2845c9f16ed766f6b6896a31a71554fb04abbf459ff62503bfabcc5b3e7b272641a9f9de70d22b44b1eacb1e7867fe322c7ef3f6769f1c201bdd655f4540ce95bdea72674ce1cd8bc667d36010d2a0119d9f00f54d42183467c03cdecc83b1532349c210a0ea3a091f0a52bf172367427e2215f0ed1abfc5cf40b6db916ca1aab76e0984f4dc1a9e8df5c6837f3f294582f391e2bf30d42af937625c3d235aa0fd46fffb1f7c7c75ced197f78136443ba0486f01b2b92fe6831c0d75dfea869c7a9c005ff7fef481ed588891c54c4b0bdb3e6ab48b4d8c013bce985f79190173ccec69c5896f66a5f34bb8eae41ade7feeb06c0af6d88dc8eabe1a81e632d0e033f5a831237be1029b74dd0228ad388e46a3ec58b4e1f51b1e9cc0bccd8c9fc1301012453d726c3bc36d3ae88d98ba64e1a1b59e5240af9347c3741ad3ab1cb94f3af23a32d5c7da81bf342a0ffc43f6d7681d2ceb53250e284e32fcb87aa5645b05750054bdd545d0df5278eed477c6d36605071951fcb3aa494434d788c8e488e67a59dd28d7141094fa39da3e35560b1632d55e4497108c360a954bf6de5601b821d8aff06beb846b4dad2de30a9fb43cb9225f392947a6e6c4b87fdc11337c975e6f898ab80c221ecf84c82d217b191f08080f94712a37748b3b28eeba92adf059537ff2ec32c85fb5b1e67e565a6c922b40eb681c211f57435120a62e890eccc8c9c689576ad8407692a799c37c17b42a28241c2de705f5978eeff073f1587bf06e6bd69ea3be00a2025d8557afc1362c821e73a2c2e9abb3518661104106d3d3206d352b3ef8b057ae3072f6bc885208161edfac345d5784f8aca9cd813e41c7a5e645ed064218993fc17e666d1350d2cfb090c902feffa47a2baf8f2bf521c299a782a8e4a8fe8e958fbd2033572adeda2c5b518bc4b4009010637bca565d66bab0d88cdecaa344d9adc6597efbb896559127d32c0088cde66d1b2a6e1530bae8917e7b805bd8b114d39299106c45ab4111495bb59b8447abf0c28425bf89136edc5eeac1b1e61fd06bb32b8deeb4cc3c141bd3d16fcb2f36255aa036616e59d9d2d438ce9d824bd07f96282b3f84866210e02e4ffd75c05b17cb047440d2efaa27296ff724e92a38bded96bd04304326d4c112c899438f6c9c1f659be7bd14d378081d3d430a20f94f1b44be2264212414dc1dbe1c233e607adc1898a2765d2a5b22a7fccfcbae3a01174c6194062b036cb60f2413f398c09a871d6e990d5178baa0e5dcb58030b3821256dd38191bca1df02604c7139ac0d0da201e7ff7ff552472163f91bb4b204fffb3f5d3aa5fc16c751a32a895975ef5fe575b53d9ac9300ad9d58f9f5fe195ec2dde5ff293802aca5ed292bd3ac27baca0bf9c0e68885ed6439e27e9c7de0c5f8706282c9a46759aeed68670da37e2e242bdcde4ea1fad78d13f5a612014d453ba22a46d8cc9ec3469a3b5744e45504c83db3eee3f9b8d5a4e529fb2d73bf48df3b6d3909280054c94b9dd10deb5008e18be89116ac5078fca6e22d552494b29611ee77b8758a13459c831e0e871fc728aaa6fa77f44161fe72d88d41a6532c0e5b316de375b76edcfaf614bf4d028c26c49f59add7fc4a91ca47e8218fc162eca411a75ba127cfc137a4173012877760576e100b8b7dd0d0a43d555ab8ccbc0ffccda0a008a812c61c6a7855b94544f122e46291eef39d850d090d976e8527f9a3e958ea79e3fb3d183b2d72191ee284f4ed49a90838a4f9e2f334fc85c580f5dcb44b89d8a01c813009409ed9f019d413188e97baec91acd2177642123c90e94419e0d0e14bab0ee840883d1a543dba9e9a9c4cd3765f8c07e04c0f92cfe904dff1495f0580fdabcfeb626478dadf2c1f1b88b618b7bc9c2292345820b05edab9e1ce6e17ba245b4e85548b162104216dfc88fe6d9896814cc41a10991ca823ce26f3cec31fff20a96e9362a5a3e69dd304e037899fd665b9abf86b70b013ca15a2634aa332db45e78298cc9d63a222cb32cdd80db9d8ff47220e50110b6506df41e1c0683f7163c78ff02ac5f04b94f27545dd38f13d25a5e532e3a197043504824101116f4772018e77b5c83da4d4176290a0e913036fcb701b557c08289a63a0c3a54390387b538abb80aa77eda8d3f60b4a47df2dadbb8b2288a54862fea1c5a9f7ddcc4f157bdbf1c9c0194d7b41d0de4512c08c1a552f002dd020fb7ad83831eaa28a800cbc3c111474321cac7a43d0410ecc2439dbd6d60552dcc88ab55d431bc3baa180e22ddd17b647ef3aeaf6aaffd27d0c6425691e56fe932ef6606a3779357cf9ad5273f230ed3f2b345df0f278518c53f7215ef2542442ac1baafe96a4fd1c2894877ecc114b0f8fdbb9383e2c70cae999ab3c4a5c1f9393d7b8a7bb34f7d26f9f2d603f31cb875ad7b56c44eca447c9aa392ab4a7f3ebd5346143b2443478d7d78f7153eaa2d0a371a912727daf64e494a4694611e46303fbab6affffbd2a748beab43620b9f62f1f2e088ef17e8ba36cf57903bf4fd8ed7403755bf3fdb2ada4e934adf8579ec6ada6bf8b10dd53184419569fafc421862a501cc726023acb1c23c4f30471901ea499e1fe7f7d3dcd6b88d5620b7fc2b5bd862ede18e4c803baee10cd6268d6b5290711b16460781972ee0558e97573ebfea5962a08c4710e6b3b06c20fe291f2fbb58c187885df2f405bc036510d4fac5699474b157836ee137a3038c778f2dad34a2ba81726d4a5558aae66c801257f147771ffe38002ea3f12c81379fa1b419a704e1d99a3320d8c22d7c9124672cf1f9ca35e0817b504f0a4d7d26d988c729aeda94cac6519126505d2a64e28f6e84e82e9df0bc8150b194eafdc9a5f39080e3715beffb337a357e0a8b1d6337a3a5e700144d67f7566b398d930ffe99a49a4ac3c7232a7255747d72ec0fecfabda4ea4459c8a30c276697b323de5ed6a90518c661a13269dc664b6d7a5816c922f4e010883df06677dad8999b552082ffa6e7d5d06cd332ddb3d4967f88da559c037c95edb3d5eeac293d0e3755e48c5f973be4d8f09b30e6e7d5c1ed00a6e7975dedef198da9afa95bba0be2bd8d947ceaaec35d038c749d1333858eb1d51edf042a94075a3388ab8bb86599d3172769bf1ded3eed3e3598c70d714428e83b87f7cda0ec591b9505b78b12abb4cb9de7c7ddbe4265852dfff9d77e2e923fde6788dd34ca596355a597bb6662ee21614342136b67993eb3cb94beb9b0e67ef11da4b4bf39dd9b2e87f0ca3c2c37dbf75cdc2517dc49408e2bc2a8ce7c9d74373d57ddc62264773d9a9e60ad4833698379fb1a44ce0508e79655438875e5004b666c10b1857d02f7dc324246c6e92e6520f7cfe8517ad47f2396c15c4f2b7137b2dac128af0f7765bd52d4d5d7f982c20fa8d8b3510aa94dd1f748411d8715fcb1ba195fa4674df25f0b5b8bef176deff4fc309c68ee779c34eb618ec0f202abb0766e0eeaa7226541e6b5d320a207b1b6ecb1bb269a6ec24524254332ddcb69ed141b374854e9d71afd6538ea7cce6acfbb449453da0831e0b041f6ff2ff255aff3a1eedcfe8baf997625ff60ed88279e0a84aa9c69998594c107bf04de44a3132e3b7c444e0d341c8827b54230f77aa1748adeec4ffb7b6866726ea7bd39c9680200abdcd8f8e2f9d34485e67fe76cd8f36ab7e66172d1c53f213a581b83e0ab47928bf2916136964609fcf5287894bf84b063bab4d253397395f73f4679d7980e125a76553cfdea45edff90d10004fb34f144f933815c531fa4d1773aa6fcb69e0fd9b3ee0a203a01323acaf236771e7802a18ff638b2a460f33a363c692c44ccc7e70af36631c846c68ca0030c30911d0fd61bf89febc0f9e8dfae6f234d212649749860336e7b730ab7d2f49dbbde62f79c198f506339bf180e82ea46556170b2d45269abbef8056d0f9fcb8a41ee269d1bbdc040d08eb493d35cf2a876a9421187a2ba45f629f8f27880dd55fe96c084c59f6cd1f8282fd9751205a8d3e3d690058337ed8a8abdf7421aae9e0be95a8630471e53c72c156acf8004fbf63fde98158770231ce085e6e9d1705531e0d31cc4ae86d176c07f337787977edaf232e742c0288cda25152c9de737d5102357f21c2d1043ed117ce7f2bec997fab8f8ab7d9e9f43c985b27b1be7e7b8b82ae28f74a3d96c25aac58a4a4dd84d9e664079f9ae79a430c3668c0a09093f5a0f187cb3f3af8a6100b0d09bbee716eebec568069990a9937366618b06b479f3dd076d8cd65e7fd099e766b700c336186ed11008d1cd14911fc7e9d7d17bd11467ad57ac8f6b9bffc022c33c94eca876c862e622acdcfc97119f7617aa7f93789fc32069e91a3e82547b0c1ca5356b1169adfef7cb066a2cfbd670f5ddf33de970f41becc3a0c72b7a25ec8b21109ed9613b6311a59d9e1f2c4ad83f666c71d9749662b415aa222e8c99dc6d6330f9a99c9704b6bdc5e4e5557885c94dce755b6ec0f97b7cbb11a4bf31f3acb17c85ce4bf19208cfdd3d397fecc29b34ca85b90d9aca2a88b6aad544e3b2b0be3076581bf09e0f850bb201a78b86dfc08bb4b123d8961a5ebc19426aff3dc7311d7256dda46d36f7e25086f988e3c6f759b104d2a81fd7e7f8dd410c5b8175c2789199a5db283f0bce95c8df658d86953966aa47b9e1868405139c60286ffadd8e5cb2bcad8167d3df762b4cb35cc3698b786ce3590ea40addd4ac8aa9e0bfd347262e8ba2b38803c62b783aeac711299e8b91572caec44ff51098853b4ede9005ef25c2a3e83e28fbf657e2be5f9fa9184f6cae8baf755d63ae39cf079e41e7b65b18dacf03c353966704e08abb561b597d7a7c510363400a9c65a5907be7d283bcb18753e896d955b1eabf9c150caa56c3cc58dc903fbfd1181b40dd4bb9f9e0332f38382c5f7f077454a9e6bd3863f70b3c08223e2c9b7021e70af744b08c28c4390bc17c29ca496180c4eccc29cc10dbd171225dd85e51fb514c1b2998744aa83dfc95f4ac5f40430b03c0c41b62b3c6528451824e10310c1097ea0ada13311a1228c654993be69ee39997a5fa79c9726dc01d166ecd3c39a5cfdbdae047356337d1cf2e20b16b1a8dd7b5a7c9313aaab15aeb6d0f9ddece98d735a8e2f3add640f08ccd8769c6e924f0457c7f1368a3a23254efeb70616d2085d541d58c033ab056677dda9e3f1c418a8a4c94a70e115c3741e4745d2820a6584f00ad76020561dad046abaf334d1215881ccb0b209b0e7aedb7653abedc01fb7249b9f712f3a46e968a6c0de6b52d5662d2434929c01b35582ef70e6227150a39c7dd69512b6a8fa94ae3ed3f9235a28c417f2954e21bc0c3fc0310e918c8d7c208d9043dd54971d6f9ecc645562aab6671e59ec1d5f3e4ae25eca93b3966e8a29d6196a8638463860a2a242d0f144675f2cd3ebf33d1ed79ee1225a8e94b466a329cc21ab964040fb8f0d90ac2dae44501f7f59426479da823281bda6adf8b9568607d69c52cfb68500133a882bb5d5be41ea3d0e109eb9e4b5ecc51c06a540eec0baa08d88b7c80da803cea63ea1231475f5b7a92f6a144a0df8882038ace61c50e152e1bbd2782931621e694dba6c073bfc6c2fb0b1f8a91f2ed38739449150f7e029f5a1bd8db1752304a4def1dc01d4e66da91888c332ddf2caa23db7fd8bb731f94e558ed507e0d2792f0ce26e857274621e5acea2b4eba18316da6b41f905b65d9fe7bfe8434517b5af63de990ecc1e03437e6958e4b7d3ce3bcd7ae63b7bc66d618b5401702756cbf88a0148e1ce8ff2160c645e09fd4da58e3a079278bb381eb52091757631354e3266d8690960aea4a6a42e19949c0845e0417bc19fe9527dbaa92bd8cbaaf9afc0a235643f95a434ae438e148f16847dbe64a13e13357db17794550de1427711e14ef249e53eba0c56798ac69534464d79571be55a0d7b6c4c0a86d6e3f425f6cb89e67704362fdc910a31a172464ea0a025c28a66cc647580be09d18f9aca17fe17438eca0bbc17e39f857d29618d1d63b1230fc2b411d450bc79088301b8a1e59eec0dde050855dccec5fbd8cda7302ba3ba10c8c2356d743da7d59bc21cd3b21b1128f25c2eae1b5bb27ca45bd0eb09787419ee4c7dd7f36eb034a7bbb96bff59217f861b559c8d6da3c05cd62ddfc4eb54fe0d7bb9431bfacf3c36b70704e6c5fae986f3e611bf78d85e953a16555ea07892528aaf86a8fbc0f01bacf7769180be3c91f6666d7051ddb4557bfb095e8dc330c8226d9fbd29e0f02324b9ea030e272c8d9619fc71aa7e94f6f854ef8e79065a888fd11b81e84401a6c31d73a007d746d5ea95bb12619bb4c6c13e42736b19ab89f38da5ff063a69b3fca12c04689b59d2d0e97243d58bc16bcc778ac33da428c57e7a295ebcfd9f5f01c348e58bd3594c71501147091254de88410ab57e52acda53d74d05759b588413a4fc4c70fb66c508c02c86ba97439e30fd66e6790bb6028c4c580d06aa00fd4d4a59f2a9313667f52d025d865ae4966800899bb16e4e0cc4a2d202b79b9ab809001f664707196479fe7d1f2eb2c10c584a9ed9377cf495f8c1536c8c5aba7fc85b9c992ed3b53a4f7750efd02e05bc96f577eeec85c9503747f5306dae0c3a8d31be61fecc7fe69b3d97bedf37eb40fbc636877e0b5cba1</script>
-  <div class="hbe hbe-content">
-    <div class="hbe hbe-input hbe-input-default">
-      <input class="hbe hbe-input-field hbe-input-field-default" type="password" id="hbePass">
-      <label class="hbe hbe-input-label hbe-input-label-default" for="hbePass">
-        <span class="hbe hbe-input-label-content hbe-input-label-content-default">请输入文章查看密码</span>
-      </label>
-    </div>
-  </div>
-</div>
-<script data-pjax src="/lib/hbe.js"></script><link href="/css/hbe.style.css" rel="stylesheet" type="text/css">]]></content>
+    <title>kolla-ansible 部署报错</title>
+    <url>/2023/05/24/kolla-ansible-issue/</url>
+    <content><![CDATA[<h2 id="问题现象："><a href="#问题现象：" class="headerlink" title="问题现象："></a>问题现象：</h2><p>环境：系统 centos7，通过 kolla-ansible 部署 train 版 Openstack，在 deploy 部署阶段执行到任务 </p>
+<p>TASK [service-rabbitmq : nova | Ensure RabbitMQ users exist] 报错 FAILED - RETRYING: nova | Ensure RabbitMQ users exist (5 retries left). 详情如下图：</p>
+<p><img src="/2023/05/24/kolla-ansible-issue/1.png"></p>
+<h2 id="问题分析："><a href="#问题分析：" class="headerlink" title="问题分析："></a>问题分析：</h2><p>查询相关博客给出的解决办法是清理部署环境，重新部署。但我清理多次部署还是会报错如上图。</p>
+<p>后谷歌相关资料，发现很多人部署都出现过这个问题，其实是 kolla-ansible 的一个bug，需要修改一下配置文件。并且This issue was fixed in the openstack/kolla-ansible 14.0.0.0rc1 release candidate.</p>
+<p><a href="https://bugs.launchpad.net/kolla-ansible/+bug/1946506">原文链接</a></p>
+<h2 id="解决办法："><a href="#解决办法：" class="headerlink" title="解决办法："></a>解决办法：</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">vi /usr/share/kolla-ansible/ansible/roles/service-rabbitmq/tasks/main.yml <br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">在第 21 行 添加如下代码</span><br><br>node: &quot;rabbit@&#123;&#123; ansible_facts.hostname &#125;&#125;&quot;<br></code></pre></td></tr></table></figure>
+
+<p>如图：</p>
+<p><img src="/2023/05/24/kolla-ansible-issue/2.jpeg"></p>
+<p>此时再去执行 deploy，安装成功 </p>
+]]></content>
       <categories>
         <category>openstack</category>
       </categories>
-      <tags>
-        <tag>openstack</tag>
-        <tag>private</tag>
-      </tags>
   </entry>
   <entry>
     <title>OpenStack Neutron trunk ports</title>
-    <url>/2023/05/28/Neutron-trunk%20ports/</url>
+    <url>/2023/06/21/Neutron-trunk%20ports/</url>
     <content><![CDATA[<p>​     OpenStack Neutron trunk ports （VLAN-aware-VMs）,”VLAN aware VMs”有时也叫做”VM trunk ports”, 主要是让虚拟机收发的vlan tagged报文, 能够被虚拟网络所识别和处理。</p>
 <p>什么是主机的Trunk port？一般来说VLAN只是对交换机可知，主机不感知VLAN，也就是主机网卡发送出来的数据是不带VLAN Tag的。当主机将网卡配置成Trunk port，会在主机的Trunk port上添加多个带有不同VLAN ID的子网卡。通过子网卡发送的数据，会打上VLAN Tag，被发送出去。由于主机发送的网络数据有了变化（带上了VLAN Tag），对主机连接的网络提出了新的要求。另一方面，由于带了不同的VLAN Tag，子网卡可以认为连接在VLAN Tag标识的网络中。这样，不用实际增减主机的网卡，只需要为主机创建带VLAN ID的子网卡，就可以将主机添加到新的VLAN网络中。</p>
 <p>​     OpenStack对VLAN Trunk的支持就是指对OpenStack所管理的虚机的Trunk port，提供网络支持。大多数场景下，主机收发的是不带tag的报文，但是在实际环境中，无论是windows还是Linux环境都通过各自的方法可以收发带有vlan tag的报文。 而一个虚机要想接收不同vlan tag的报文，就需要在虚机上接入不同网络，即在虚机上配置不同网络的虚拟网卡。在NFV（Network Function Virtualization）场景下，若网络数量巨大，网卡数量也巨大，这种实现的方法就不现实；另一方面，连接的多个网络也是动态增减的，如果每次都增减网卡明显也是不方便的。如果使用Trunk port，当需要动态连接多个网络时，只需要动态的创建/删除相应的子网卡即可</p>
@@ -62,8 +121,76 @@
       </categories>
   </entry>
   <entry>
-    <title>kolla-ansible 部署 openstack——train</title>
-    <url>/2023/05/24/kolla-ansible-deploy-openstack-train/</url>
+    <title>删除网卡自动分配的fix ip</title>
+    <url>/2023/05/24/%E5%88%A0%E9%99%A4%E7%BD%91%E5%8D%A1%E8%87%AA%E5%8A%A8%E5%88%86%E9%85%8D%E7%9A%84fix-ip/</url>
+    <content><![CDATA[<p>当我们想要给云主机添加第二块无 IP 的网卡时，需要云主机挂载上新的网卡接口，但是在挂载接口时，时常会dhcp自动的分配一个ip地址，此时我们需要给他删除掉分配的地址，让他成为一个没有IP地址的网卡</p>
+<p>找出目标云主机的 port 列表（此处我需要移除 IP的是 192.168.2.6 ）</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack port list --server  1317ada5-231c-417f-9cc8-b6867591457e<br></code></pre></td></tr></table></figure>
+
+<p><img src="/2023/05/24/%E5%88%A0%E9%99%A4%E7%BD%91%E5%8D%A1%E8%87%AA%E5%8A%A8%E5%88%86%E9%85%8D%E7%9A%84fix-ip/1.jpg"></p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack  server  remove port $server_id  $port_id<br>openstack port set $port_id   --no-fixed-ip<br>openstack  server  add port $server_id  $port_id<br>openstack port list --server  41350a43-bd76-45fc-92ff-283e01c124fa<br></code></pre></td></tr></table></figure>
+
+<p><img src="/2023/05/24/%E5%88%A0%E9%99%A4%E7%BD%91%E5%8D%A1%E8%87%AA%E5%8A%A8%E5%88%86%E9%85%8D%E7%9A%84fix-ip/2.jpg"></p>
+]]></content>
+      <categories>
+        <category>openstack</category>
+      </categories>
+      <tags>
+        <tag>openstack</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>openstack常用命令整理</title>
+    <url>/2023/06/21/openstack%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/</url>
+    <content><![CDATA[<h2 id="配额-「quota」"><a href="#配额-「quota」" class="headerlink" title="配额 「quota」"></a>配额 「quota」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack quota set --ram 1024 --instances 5 --cores 3 &#123;项目名&#125;     # 项目限制配额<br></code></pre></td></tr></table></figure>
+
+<h2 id="虚拟机-「server」"><a href="#虚拟机-「server」" class="headerlink" title="虚拟机 「server」"></a>虚拟机 「server」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack console url show &#123;虚拟机名字&#125;<br>openstack server delete &#123;虚拟机名字&#125;<br>openstack server force-delete &#123;虚拟机名字&#125;       # 强制删除虚机<br>openstack server list / show  <br>openstack server resize      # 调整云主机大小<br>openstack server event list --long &#123;虚拟机 id&#125;    # 查询云主机的事件<br></code></pre></td></tr></table></figure>
+
+<h2 id="搁置-「shelve」"><a href="#搁置-「shelve」" class="headerlink" title="搁置 「shelve」"></a>搁置 「shelve」</h2><p>对于一些长时间不使用的虚拟机，即使处于关机状态，仍然会占用着集群资源<br>如果需要释放这些资源,则使用shelve来操作,该操作会将server实例作为image保存到glance中,然后在宿主机中删除该server实例</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack server shelve &#123;虚机id&#125;  # 机器开启搁置状态 （搁置状态：--status SHELVED_OFFLOADED ）<br>openstack server unshelve     # 取消搁置的机器<br></code></pre></td></tr></table></figure>
+
+<h2 id="镜像-「image」"><a href="#镜像-「image」" class="headerlink" title="镜像 「image」"></a>镜像 「image」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">共享私有镜像给其他项目<br><br>openstack image set --shared &#123;镜像id&#125;    # 镜像设置为共享<br>openstack image add project  &#123;镜像id&#125;  &#123;目标项目id&#125; <br>openstack role add --user &#123;&#125;  project_member --project  &#123;目标项目id&#125; <br><br>export OS_PROJECT_NAME=&#123;目标项目名&#125;       # 切换项目<br>openstack image set --accept &#123;目标镜像id&#125; <br>export OS_PROJECT_NAME=&#123;&#125;<br>openstack role remove --user &#123;&#125; project_member --project &#123;目标项目id&#125;<br><br>openstack image member list &#123;目标镜像id&#125;     # 验证是否共享成功<br><br>openstack image set  # 更新镜像<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="网络-「network」"><a href="#网络-「network」" class="headerlink" title="网络 「network」"></a>网络 「network」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack floating ip list <br><br>云主机添加无IP的网卡<br>openstack network list --project &#123;项目名&#125;    # 查看项目下网络<br><br>openstack port create  --network  &#123;网络id/name&#125;   &#123;端口名&#125;     在不指定IP地址的情况下创建一个端口<br><br>创建指定IP地址的端口<br>openstack port create --network net1 --fixed-ip subnet=subnet1,ip-address=192.0.2.40 &#123;端口名&#125;  <br><br>openstack port list <br>nova interface-attach --port-id  &#123;port id&#125;   &#123;server id&#125;   <br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="支付者-「assignment」"><a href="#支付者-「assignment」" class="headerlink" title="支付者 「assignment」"></a>支付者 「assignment」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack role assignment list  --project  &#123;项目名&#125;  --name  # 查看用户的支付者<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="卷-「volume」"><a href="#卷-「volume」" class="headerlink" title="卷  「volume」"></a>卷  「volume」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack volume type list   # 查看卷类型<br>openstack volume set --state &#123;&#125;     # 改变云硬盘状态  <br>openstack volume backup list   # 查看云硬盘备份<br>openstack volume snapshot list --all --volume &#123; id/name &#125;<br><br>nova  volume-detach  &#123;云主机ID&#125; &#123;volume id&#125;     # 分离卷<br></code></pre></td></tr></table></figure>
+
+<p>Volume 除了可以用作 instance 的数据盘，也可以作为启动盘（Bootable Volume）创建Volume时，选择Volume Source为image，创建后可以看到该volume是Bootable的，后可根据需求创建可启动volume</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack volume create --image $IMAGE_ID --size $SIZE --type $TYPE --bootable $NAME<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="迁移-「migrate」"><a href="#迁移-「migrate」" class="headerlink" title="迁移  「migrate」"></a>迁移  「migrate」</h2><p>迁移的云主机若内存等资源使用率过高会导致热迁移实例写入内存页面的速度可能比复制它们的速度快<br>从而虚拟机产生了内存脏数据,无法完成迁移超时,虚拟机状态error</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">nova live-migration-force-complete 实例ID 迁移ID        # 强制迁移<br>nova server-migration-list 实例ID                  # 获取迁移的任务ID<br>nova live-migration-abort 实例ID 迁移ID                 # 取消迁移<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="负载均衡-「loadbalancer」"><a href="#负载均衡-「loadbalancer」" class="headerlink" title="负载均衡  「loadbalancer」"></a>负载均衡  「loadbalancer」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack loadbalancer list<br></code></pre></td></tr></table></figure>
+
+
+
+
+
+<p><a href="https://access.redhat.com/documentation/zh-cn/red_hat_openstack_platform/17.0/html/command_line_interface_reference/index">redhat官方openstack命令行文档</a></p>
+]]></content>
+      <categories>
+        <category>openstack</category>
+      </categories>
+      <tags>
+        <tag>openstack</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>kolla-ansible 部署 openstack—train</title>
+    <url>/2023/06/21/kolla%E9%83%A8%E7%BD%B2openstack-Train/</url>
     <content><![CDATA[<h1 id="环境介绍"><a href="#环境介绍" class="headerlink" title="环境介绍"></a>环境介绍</h1><p>系统：centos7<br>三台云主机</p>
 <h1 id="节点规划"><a href="#节点规划" class="headerlink" title="节点规划"></a>节点规划</h1><table>
 <thead>
@@ -130,7 +257,8 @@
 
 <h2 id="（三）-部署-openstack-环境"><a href="#（三）-部署-openstack-环境" class="headerlink" title="（三） 部署 openstack 环境"></a>（三） 部署 openstack 环境</h2><h3 id="1、安装-openstack-云平台"><a href="#1、安装-openstack-云平台" class="headerlink" title="1、安装 openstack 云平台"></a>1、安装 openstack 云平台</h3><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell"><span class="hljs-meta prompt_"># </span><span class="language-bash">测试节点连通性</span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">bootstrap-server安装 OpenStack 所需的依赖包</span><br>kolla-ansible -i multinode bootstrap-servers<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">检查配置</span><br>kolla-ansible prechecks  -i multinode <br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">下载openstack各个组件容器镜像</span> <br>kolla-ansible pull -i /etc/kolla/multinode<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">-vvv: 此参数添加，可打印出详情</span><br>kolla-ansible -i multinode deploy <br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">生成环境脚本</span><br>kolla-ansible post-deploy /etc/kolla/admin-openrc.sh<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">遇到报错，销毁已安装的环境</span><br>kolla-ansible  destroy  ./multinode    --yes-i-really-really-mean-it<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">调整配置及重新部署</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">编辑 globals.yml 后, 然后运行 reconfigure 使用 -t 参数可以只对变动的模块进行调整</span><br>kolla-ansible -i /etc/kolla/multinode reconfigure -t neutron<br>kolla-ansible -i /etc/kolla/multinode  deploy -t neutron<br><br></code></pre></td></tr></table></figure>
 
-<h3 id="2、安装-openstack-客户端"><a href="#2、安装-openstack-客户端" class="headerlink" title="2、安装 openstack 客户端"></a>2、安装 openstack 客户端</h3><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">docker run -d --name client \<br>  --restart always \<br>  -v /etc/kolla/admin-openrc.sh:/admin-openrc.sh:ro \<br>  -v /usr/share/kolla-ansible/init-runonce:/init-runonce:rw \<br>  kolla/centos-binary-openstack-base:train sleep infinity<br> <br>docker exec -it client bash<br>source /admin-openrc.sh<br>openstack service list<br></code></pre></td></tr></table></figure>]]></content>
+<h3 id="2、安装-openstack-客户端"><a href="#2、安装-openstack-客户端" class="headerlink" title="2、安装 openstack 客户端"></a>2、安装 openstack 客户端</h3><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">docker run -d --name client \<br>  --restart always \<br>  -v /etc/kolla/admin-openrc.sh:/admin-openrc.sh:ro \<br>  -v /usr/share/kolla-ansible/init-runonce:/init-runonce:rw \<br>  kolla/centos-binary-openstack-base:train sleep infinity<br> <br>docker exec -it client bash<br>source /admin-openrc.sh<br>openstack service list<br></code></pre></td></tr></table></figure>
+]]></content>
       <categories>
         <category>openstack</category>
       </categories>
@@ -140,45 +268,112 @@
       </tags>
   </entry>
   <entry>
-    <title>kolla-ansible 部署报错</title>
-    <url>/2023/05/24/kolla-ansible-issue/</url>
-    <content><![CDATA[<h2 id="问题现象："><a href="#问题现象：" class="headerlink" title="问题现象："></a>问题现象：</h2><p>环境：系统 centos7，通过 kolla-ansible 部署 train 版 Openstack，在 deploy 部署阶段执行到任务 </p>
-<p>TASK [service-rabbitmq : nova | Ensure RabbitMQ users exist] 报错 FAILED - RETRYING: nova | Ensure RabbitMQ users exist (5 retries left). 详情如下图：</p>
-<p><img src="/2023/05/24/kolla-ansible-issue/1.png"></p>
-<h2 id="问题分析："><a href="#问题分析：" class="headerlink" title="问题分析："></a>问题分析：</h2><p>查询相关博客给出的解决办法是清理部署环境，重新部署。但我清理多次部署还是会报错如上图。</p>
-<p>后谷歌相关资料，发现很多人部署都出现过这个问题，其实是 kolla-ansible 的一个bug，需要修改一下配置文件。并且This issue was fixed in the openstack/kolla-ansible 14.0.0.0rc1 release candidate.</p>
-<p><a href="https://bugs.launchpad.net/kolla-ansible/+bug/1946506">原文链接</a></p>
-<h2 id="解决办法："><a href="#解决办法：" class="headerlink" title="解决办法："></a>解决办法：</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">vi /usr/share/kolla-ansible/ansible/roles/service-rabbitmq/tasks/main.yml <br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">在第 21 行 添加如下代码</span><br><br>node: &quot;rabbit@&#123;&#123; ansible_facts.hostname &#125;&#125;&quot;<br></code></pre></td></tr></table></figure>
+    <title>kolla部署openstack-Yoga</title>
+    <url>/2023/06/16/kolla%E9%83%A8%E7%BD%B2openstack-Yoga/</url>
+    <content><![CDATA[<p>系统：Rocky Linux release 9.2</p>
+<h1 id="一、基础环境配置"><a href="#一、基础环境配置" class="headerlink" title="一、基础环境配置"></a>一、基础环境配置</h1><h2 id="1-1、修改主机名-amp-hosts映射"><a href="#1-1、修改主机名-amp-hosts映射" class="headerlink" title="1.1、修改主机名 &amp; hosts映射"></a>1.1、修改主机名 &amp; hosts映射</h2><p>填写 /etc/hosts（所有节点）</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">cat &gt;&gt; /etc/hosts &lt;&lt;EOF<br>192.168.1.8 openstack01<br>192.168.1.7 openstack02<br>192.168.1.4 openstack03<br>EOF<br></code></pre></td></tr></table></figure>
 
-<p>如图：</p>
-<p><img src="/2023/05/24/kolla-ansible-issue/2.jpeg"></p>
-<p>此时再去执行 deploy，安装成功 </p>
+
+
+<h2 id="1-2、yum源设置"><a href="#1-2、yum源设置" class="headerlink" title="1.2、yum源设置"></a>1.2、yum源设置</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">sed -e &#x27;s|^mirrorlist=|#mirrorlist=|g&#x27;     -e &#x27;s|^#baseurl=http://dl.rockylinux.org/$contentdir|baseurl=https://mirrors.aliyun.com/rockylinux|g&#x27;     -i.bak     /etc/yum.repos.d/rocky-*.repo<br><br>yum clean all <br>yum makecache<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="1-3、禁用防火墙-amp-amp-打开centos路由转发"><a href="#1-3、禁用防火墙-amp-amp-打开centos路由转发" class="headerlink" title="1.3、禁用防火墙 &amp;&amp; 打开centos路由转发"></a>1.3、禁用防火墙 &amp;&amp; 打开centos路由转发</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">systemctl stop firewalld &amp;&amp; systemctl disable firewalld &amp;&amp; setenforce 0<br>echo &quot;net.ipv4.ip_forward = 1&quot; &gt;&gt;/etc/sysctl.conf &amp;&amp; sysctl -p /etc/sysctl.conf<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="1-4、安装-openstack-软件仓库"><a href="#1-4、安装-openstack-软件仓库" class="headerlink" title="1.4、安装 openstack 软件仓库"></a>1.4、安装 openstack 软件仓库</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">dnf install -y centos-release-openstack-yoga<br>dnf -y update<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="1-5、安装-docker"><a href="#1-5、安装-docker" class="headerlink" title="1.5、安装 docker"></a>1.5、安装 docker</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo<br>dnf install -y docker-ce<br>systemctl enable --now docker<br></code></pre></td></tr></table></figure>
+
+
+
+<h1 id="二、部署节点环境准备"><a href="#二、部署节点环境准备" class="headerlink" title="二、部署节点环境准备"></a>二、部署节点环境准备</h1><h2 id="2-1、安装-Python-构建依赖项"><a href="#2-1、安装-Python-构建依赖项" class="headerlink" title="2.1、安装 Python 构建依赖项"></a>2.1、安装 Python 构建依赖项</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">dnf install -y git  python3 sshpass tmux python3-devel libffi-devel gcc openssl-devel python3-libselinux python3-netaddr<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="2-2、获取部署脚本"><a href="#2-2、获取部署脚本" class="headerlink" title="2.2、获取部署脚本"></a>2.2、获取部署脚本</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">mkdir -p /opt/openstack &amp;&amp; cd /opt/openstack      # 创建安装目录<br>git clone -b stable/yoga https://opendev.org/openstack/kolla-ansible.git<br></code></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="2-3、生成kolla-ansible虚拟环境"><a href="#2-3、生成kolla-ansible虚拟环境" class="headerlink" title="2.3、生成kolla-ansible虚拟环境"></a>2.3、生成kolla-ansible虚拟环境</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">python3 -m venv /opt/openstack/venv<br>source /opt/openstack/venv/bin/activate   # 激活虚拟环境<br></code></pre></td></tr></table></figure>
+
+
+
+
+<h2 id="2-4、安装-pip-amp-Ansible"><a href="#2-4、安装-pip-amp-Ansible" class="headerlink" title="2.4、安装 pip &amp; Ansible"></a>2.4、安装 pip &amp; Ansible</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">pip install -U pip <br>pip install &#x27;ansible&gt;=4,&lt;6&#x27;<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="2-5、检查openstack版本"><a href="#2-5、检查openstack版本" class="headerlink" title="2.5、检查openstack版本"></a>2.5、检查openstack版本</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">cd ./kolla-ansible<br>git checkout stable/yoga<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="2-6、安装相关依赖"><a href="#2-6、安装相关依赖" class="headerlink" title="2.6、安装相关依赖"></a>2.6、安装相关依赖</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">pip install .<br>cd ..<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="2-7、创建-etc-kolla目录"><a href="#2-7、创建-etc-kolla目录" class="headerlink" title="2.7、创建/etc/kolla目录"></a>2.7、创建/etc/kolla目录</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">mkdir -p /etc/kolla<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="2-8、复制配置文件"><a href="#2-8、复制配置文件" class="headerlink" title="2.8、复制配置文件"></a>2.8、复制配置文件</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">cp ./venv/share/kolla-ansible/etc_examples/kolla/* /etc/kolla<br>cp ./kolla-ansible/ansible/inventory/multinode ./inventory<br></code></pre></td></tr></table></figure>
+
+
+
+
+<h2 id="2-9、安装-ansible-galaxy-依赖"><a href="#2-9、安装-ansible-galaxy-依赖" class="headerlink" title="2.9、安装 ansible galaxy 依赖"></a>2.9、安装 ansible galaxy 依赖</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">kolla-ansible install-deps<br></code></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="2-10、修改-ansible-配置文件"><a href="#2-10、修改-ansible-配置文件" class="headerlink" title="2.10、修改 ansible 配置文件"></a>2.10、修改 ansible 配置文件</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">mkdir -p /etc/ansible<br>cat &gt; /etc/ansible/ansible.cfg&lt;&lt;EOF<br>[defaults]<br>host_key_checking=False<br>pipelining=True<br>forks=100<br>log_path = /var/log/openstack-ansible.log<br><br>[privilege_escalation]<br>become = True<br>EOF<br></code></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="2-11、修改配置文件"><a href="#2-11、修改配置文件" class="headerlink" title="2.11、修改配置文件"></a>2.11、修改配置文件</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">vi ./inventory     # 修改inventory文件<br><br>[all:vars]<br><br>Host user name and password must be required if no ssh trust<br>ansible_connection=ssh<br><br>Using password<br>ansible_user=root<br>ansible_ssh_pass=123456<br><br>These initial groups are the only groups required to be modified. The<br>additional groups are for more control of the environment.<br>[control]<br><br>These hostname must be resolvable from your deployment host<br>openstack01<br>openstack02<br>openstack03<br><br>The above can also be specified as follows:<br><span class="hljs-meta prompt_">#</span><span class="language-bash">control[01:03]     ansible_user=kolla</span><br><br>The network nodes are where your l3-agent and loadbalancers will run<br>This can be the same as a host in the control group<br>[network]<br>openstack01<br>openstack02<br>openstack03<br><br>[compute]<br>openstack01<br>openstack02<br>openstack03<br><br>[monitoring]<br><span class="hljs-meta prompt_">#</span><span class="language-bash">monitoring01</span><br><br>When compute nodes and control nodes use different interfaces,<br>you need to comment out &quot;api_interface&quot; and other interfaces from the globals.yml<br>and specify like below:<br><span class="hljs-meta prompt_">#</span><span class="language-bash">compute01 neutron_external_interface=eth0 api_interface=em1 storage_interface=em1 tunnel_interface=em1</span><br>[storage:children]<br>control<br><br>[mons:children]<br>control<br><br>[osds:children]<br>compute<br><br>[grafana-server:children]<br>mons<br><br>[deployment]<br>localhost       ansible_connection=local<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">编辑安装文件</span><br><br>cat &gt;&gt; /opt/openstack/openstack.yml&lt;&lt;EOF   <br><br>离线 registry<br>docker_registry: &quot;10.0.10.11:4000&quot;<br>docker_registry_insecure: &quot;yes&quot;<br>kolla_base_distro: &quot;centos&quot;<br>kolla_install_type: &quot;source&quot;<br><br>管理类型网络的默认接口<br>network_interface: &quot;eno4&quot;<br><br>业务网络接口<br>neutron_external_interface: &quot;bond0&quot;<br><br>为管理网络提供浮动IP<br>kolla_internal_vip_address: &quot;172.240.12.50&quot;<br>enable_cinder: &quot;yes&quot;<br><br>关闭cinder backup<br>enable_cinder_backup: &quot;no&quot;<br><br>关闭fluentd容器服务<br>enable_fluentd: &quot;no&quot;<br><br>关闭openvswitch容器服务（关闭这个服务是因为我们以及安装了openvswitch）<br>enable_openvswitch: &quot;no&quot;<br><br>关闭编排服务<br>enable_heat: &quot;no&quot;<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_">#</span><span class="language-bash"><span class="hljs-comment">####实例高可用</span></span><br>enable_masakari: &quot;yes&quot;<br>enable_hacluster: &quot;yes&quot;<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_">#</span><span class="language-bash"><span class="hljs-comment">####trunk</span></span><br>enable_neutron_agent_ha: &quot;yes&quot;<br>enable_neutron_trunk: &quot;yes&quot;<br>enable_neutron_segments: &quot;yes&quot;<br><br>EOF<br><br><br>vi /etc/kolla/globals.yml     # 添加占位符<br><br>dummy:<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="2-12、生成kolla-密码"><a href="#2-12、生成kolla-密码" class="headerlink" title="2.12、生成kolla 密码"></a>2.12、生成kolla 密码</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">kolla-genpwd<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="2-13、检查主机连通性"><a href="#2-13、检查主机连通性" class="headerlink" title="2.13、检查主机连通性"></a>2.13、检查主机连通性</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">ansible -i ./inventory all -m ping<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="2-14、节点初始化-amp-节点检查"><a href="#2-14、节点初始化-amp-节点检查" class="headerlink" title="2.14、节点初始化 &amp; 节点检查"></a>2.14、节点初始化 &amp; 节点检查</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">kolla-ansible -i ./inventory -e @/opt/openstack/openstack.yml bootstrap-servers -vv<br><br>获取安装镜像<br>kolla-ansible -i inventory -e @/opt/openstack/openstack.yml pull -vv<br><br>kolla-ansible -i /opt/openstack/inventory -e @/opt/openstack/openstack.yml prechecks -vv <br></code></pre></td></tr></table></figure>
+
+
+
+<p>-e prechecks_enable_host_ntp_checks=false</p>
+<h2 id="2-15、正式部署"><a href="#2-15、正式部署" class="headerlink" title="2.15、正式部署"></a>2.15、正式部署</h2><figure class="highlight awk"><table><tr><td class="code"><pre><code class="hljs awk">kolla-ansible -i <span class="hljs-regexp">/opt/</span>openstack<span class="hljs-regexp">/inventory -e @/</span>opt<span class="hljs-regexp">/openstack/</span>openstack.yml deploy -vv<br><br>发布部署<br>kolla-ansible -i <span class="hljs-regexp">/opt/</span>openstack<span class="hljs-regexp">/inventory -e @/</span>opt<span class="hljs-regexp">/openstack/</span>openstack.yml post-deploy -vv<br><br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="2-16、安装-openstack-client"><a href="#2-16、安装-openstack-client" class="headerlink" title="2.16、安装 openstack-client"></a>2.16、安装 openstack-client</h2><figure class="highlight awk"><table><tr><td class="code"><pre><code class="hljs awk">pip install python-openstackclient -c https:<span class="hljs-regexp">//</span>releases.openstack.org<span class="hljs-regexp">/constraints/u</span>pper/yoga<br>(-c 指定约束版本)<br></code></pre></td></tr></table></figure>
+
+
+
+
+
 ]]></content>
-      <categories>
-        <category>openstack</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>openstack常用命令整理</title>
-    <url>/2023/05/24/openstack/</url>
-    <content><![CDATA[<div class="hbe hbe-container" id="hexo-blog-encrypt" data-wpm="抱歉, 这个密码对哈, 请再试试或者联系管理员" data-whm="OOPS, these decrypted content may changed, but you can still have a look.">
-  <script id="hbeData" type="hbeData" data-hmacdigest="bc7f19d88bba0c04da7c7f09ec7ac4fb221e9c1f8d5c686ad44528e345793a80">0c8c0c54bff21ef7c09c278b65b38916acf1db60f1401b1a8922d613ee7b4eba33a74483ff0cdfbce65c0d415f5d3a2f67626b1af8099e63836934dfd12cbc9782811c6c228af4e02fa50e4da7eb1c3b5f0312b09e2965d35789bc447ded991d91436426f30b668043f2f1d44626be1b2b97da2d08c4753e6cce9027326fcac42dc72527ddaf603b7a4d8adf4d014bbf9b89746672f17aa0dbc1556eedb66777ea21945875be2e398088589e61ddc72332586926c53e3d293a74fb2368df0f2e307ec826e0529777a1ce58e18a1846612e94747bab992675b7346a54cf57967612189b2846f2599da4c9d974281b06cb92fd2bd0a3be51f564a9b44450f09d384aabc8e565c8c6efe3d721e8be41bebc94c3bd7be11fb6ba5f3a123fa893c659d0593f517785f17d1f42126eaccd39f86d5449a67e6e81256e917a52b83b395cc232cd003920f70a383b4198b0ffa9899d47eba5b9ea1d6bf72f992355a1de6b4872f8d109fcf2808e40bb5c119b39deed0357fccc7ffbff40722f6b2727b8aa6e3a7e6086f95afda08479387284d3fa4e582f5ecc269a9de7742721e2509a38b4f38d52b67ec58125099f596db3248b8749fbabda01f4da604cf9152697dc807db17564070abe9998b3896049c404dde2f52ca75c301de552f449527fad70a152a48e817aecfd82a94c8ceb25c424d14cda82b66a3700f4fb01a87535f4bf437eb3b1594186f2915d86c1b9972d3594770d8db653604e5bf2c484a5dbf19844b9c78c08e92614aa687a2b795609eecdff72ea42bd88f9c12320cf74298003687f694b2aa274d07d4457fa006935dea8569c0ff0593ccf61c25669b6adc34c263f053731bdb2f089dc1a47374e2d0c6ec141ce9d8432de2abc3f50cff274e101fe7aff186e60515822f35150878bdbced7fa43e699f8d26650fecf83e7c7d61abe606dd1f5fb436fb99d89866056ed84283c0a1af72afebb2d91ba96d758830efea76d144382c89ddedf3ab0b640ca880b90e72d91201aaba30c9c45a1e7093506a05dd94230ca655a56b3beae585590547ee6acb90c6b54b5e1e4ef595dcc54ea9dd4a7d43d4cab343122b69bb372036b555a483e895daad756bc9c2df2b8da613b838f57f01066bfc8ecc8147c0b7ca252d9216fb96625ef0af7a142fd946757bcd34032f24b6e1e9687516bccbeeb7cd6fb3fbfc403a2acafd98096d95a491e12ad6d556fc16171d37042934f8eab40c9dc5e0cf67443bde7ef3f704fa1480f304212fb1707345d5691526baef52fd2f09a47c6f2b1773be839e7ed53a85a8200e472293791213ae1a38ec9ec308366f6effcb3f56fdcf3729a5f8b0e949b361f9a30cc1728a18821080b40cd50028fd272bedfd053cc65de31c087421e7dcc9f0666744c36291ac3f77913e75eb6762bb8c3af8e20964483d1812b88bc292755b0f84cfc2078e79485ae3b3ba1d42fea1f712c28cbc12c58cc4310e6d3c1241e26b395617b9e84315c1af9c4dc2a4fb68d70b4e0b149204b7829dd2655f8ac736af74b996394d631b1fdb4027e8504a96bac40fa2ae1c64508bcd21b03d945b425119d3e56bd075481110730a1d003a244cf899a32aa87b0e6bcc8786e186787db2c092d8523838973c0f3e697153b9a7a70b21ae890170f6d594be0349493873f887006c7d6ebd36cf3ca970cd935a3b6a8ea7c4039f6b192455dfb305e80345ef03189d95085e0edaef088e82da9424af11a0f901fb008bc8a0265229375fc4e1156ed2683cc55f50fd96d939390b9095d8b1f8882cf457b99e1992fcc429d051eb14df4228d71c2a136987de989e202b1904dc1e2cbb491c052f532f2a93590fa5383ec7b3386b9b5a5f5743140b84c07dcf4878dcf060c90f061d1b569e1691fa9c89145a785c5770b6d3dd4635ad286d8ad58b129908397f0402d4e9028aba652e5938162e29dff23381c8896fb1813bccc9d33336fdbeadbbb721645a2f2dd0d574527b8b32a9ee2784d3d14e2a83bfab14f31670e55d7a17cd27a0cf866560f1b6cd007ffb37ab6ecb2e61658b94929a4b139e4eb295b5a0daf26338cd2c58dff4b1cc4181b2c81ebfe0b8a38d3b336c5441608262cd38ee2b6ac8f9a50edb42482bef2b671e02c7e7f2863dde4e2cf95dab64f43a0fd001104b6ba96d4d98ace029ab3f1ac77d0806e3886393278719117b063278cd4d4167ef74fef1c917b2921ab456ef71f30c3f81a7ba987cfa30fb2198dcc374f8cb6b9d1ec2017861e810ab476d4559975848dc9cd9ecb2ff9881fc3ae5181f1f2403591c6bfa99b06f74abc1a62fb59ed62ec50610c191e4d5f909d1df95d858b6f79c0570ae9749955ae44bf3bd79d316e0e804d7948b708abb95041e1522d9ce96b118eb21b44ad779303f322c80feb2609ac7afb267abb042c2f909fe2bea0f28f728cf757a9d3524b81e7c5ac1552498e5564889d29b2d4b6bf5080fc0fc2c06ebd93cc385788acba22d9245579d65f5528729c53077d28b87f1a1b4d41c2ea3be91a352f3d95482e26425e8ebffb72c3b5df162dc1d3ed96d344d984c0034b0e56744ac0d7ea4aad02557fa626c1801bd34c2a3f9c8d8ac0de61d3096caa1d5859655cdd603cf4b36bef538a0e134d4bb2ec5c1e19f283635e5a7f934ec145bc1b4f3169551c5750715775930b1e882f49243ac7db996198a2c61601cc5bc4fbcc7606a4d09604d093d72a62df5a52e9b94b35c9474f6c6f98918ea274822fb5f88aeffae39ef783caf2c65611611dc84495cf1720e95949a8229eedf47df1b55c610ef9b68892450c73c4fbf95cb4f53936cd8de393cd43c01703e1dac373231ab39bd89e125ca97f8650549b5909724e49817687ee769b9ab6232315bf3803092070bacddc7e5daba1e122a3f49cde7153ff4d568dd3a3c6ff3c8f3fabe348c6c47b12e1b9d073fe3eac1723f8fd4ca535725d42cb50004f38b7859943236c649f75b3d412b7ffba4e166dfbc5b3153a52d402ad42dec6c61936c73a82b8c299cf55d5c717e1f50d147f4a237cbb5e8fecc8779224388cf4ca29117dc079b85556b251eac6cb226aee7890589f3647247390b2b44063ffc49fe7af59f73c0e60d8fe977653bb1ed5c9d2c174691387a433607c84f90691e395aaba34116774afca47ad943ed4a69ee588b0b936b76a05f0ec34419c80dc5d2d66341aa6f2cb6e4c8a74493eae87d91843a791541b024fad274ad909a573776ff55812d9add4de5cd4a093d99d5a0d367d3d77af68b412020416b6b500b737dfbffe7da46b3c3ec291577bccf6ee47da14ff93c3f7c2fd78da6b5bc86a81d0a0295cec034778d8cd634ecd9182ee08ea26f5a2b7ff74a63bb66e7c547e49dbee61a5c0194da172ca52317b1f1ec9300c26601f042bee2813c6e201e8b4c5d4f2e34a64b79602cc0b3076d1204fd462f8a618a0436e22c20f8bdf718fc759b31a003ec4847ca87d3fea8e0cc1082d4f2ea57edebeee040a39c4d3bfca9e82e0db8eb64c7f79392994fa9fc73384afa84b7a40f1c510e0308ef05f8e184bdef2a6f7d0d91563964afad0df7d7e6d72c41a1fa6529cf82190a6abb88dcd7dc4ce19e0b713b9978181616ea994297530537cf4a37623cf6de56d117a2d44b99613c4f8110c24935e614520ffc89f905f69046136e14490e7b380bfff3f20f9edc5d9d00c289e0b01771b5205fddae899c4bb52e57460925d73ac898993e5b75d9d105fd387ca652710c78faa3c0e4f8495f7e93de8a9ea315c31555f161a7c2cfc3585d917036ca36de7fb72ad67a947de1ce7ef5729dfcee98d3e1e9c0ddc10d7d9d07cc44ccbf57d1f94a3ae0e453e076d279fecb8a4289b485a7d4dee3902e2563b2d712135b4b220c8b54e6337241877672453ffcb16ea91caf564a029dbbb6f26303845b0f5dd62ab8b0d85f09f664b621183826efe06732069ba75707b7ea7f39e98a2ae15555cf10bb731b97556180ed709a55a5bb6b415bc57a40e88c7c4fae7d0d010aa7d747f9d415c10282c010175e02bf73a709a973883ef5fd112a47601f4d6cf6cbf69fd1d37a3551c1ad58ef25f2ecb6e8c6e24216be88daed8b1601fd6a62967fa373608188f0cf2345a1e182e69e8340fbba0c7784397690c5ea807d3ad0188f06d87a442fe8f4a1561c9a0c074c1ef44b2f8fa69c81118de8b3a0349c5e0fe94571286740d4fb7f725bee6fd8c1233f25895f3a414b05239b6a7f6fd50d18df215c4a144e705f8e0b08d688f174145fe924d3ceb7b0f61896e46a0b8b683ddadeaff2cec376d6da6694084888c8f5ce92569916757e9e50d49ec8e089e379e0187780aa8e47b5eb5391ac8b09dd7a6decbf3d3089140d1a0b820c1bb27506b66fa0ee16ec3bb86ef828b4510cb65b5f1eb89c3a7249b3906870a67138e1a002c229b87310bba6b40f744dc11661df89fab0fd9e8459b00bfd7618bf944e6f5ee7ab7bd9b20248d929035925a80cb5c1a6830af8f982df3c0347de1a77ec11a9cc679c5ce8ecc530a5626f9ce67f751596b8f59fe849b8d44a12f11e5b39dc0f4f30b897f3229486740a0c3e474509ee27d492a565bbf8b305ceb1c24b477ad97f38bbdc3fb3b7737430f8959fad91295d9bff78261c495b23bd69631958714c820a0c37a580fe894a7924d81e1c1da7c252be7ee51011abf72c77e5c362e62ebbb20f930abbaa370f2d78e221ff069f5f9be72de7c90d7679f6a4467577f2daeeec1e067d658a17fbe93c133a4752fc6a4256dd6be9a3940487af691d6c1797becc503c06e5c0d4c27cbcd9c087032524c15ab8be5a52e7a1ce056f9fbb2c4819086ecac70d48754fa8b860ad0b602ce234be190563d43249a528187835d1289ae79bad220b4a7657fa63cb33f686dc4ebea137042ef6b01dcf79d1fd492acb1036194043198d0434a27bf27d5fd20db02e0951223e153cb8588d30e7da3af7211e07da3c9e85f3cef5ba2704761d4eaddabec2a109ee031e744af0159e355fc3ee254c6d13786be428cdc5c64f4733d2e203aaf646af49a8de0874535572b582aed31760a5729ec07f15edb1c7aa9fcea60ba8bacdeb161bceec289181abd96cf29903ffc5e658f4997de14b8978838d743906aa49761019c3de80ba0cdc07fbe1d3dfbe54d8097be7faa1823f427d84fa3fd4eabfe6065a704d55a06b2190853421202142759fb89894fff6f74302e0004201235abfa7e389cba58d0b4efa5b6b580fc3b85bf7ad8ea398c3349e8d704d81a41bd355f3293c7cf6fe8729cf24ed6ad5739043ce053724c6552362e019e6a7454a72f6acad697141c4b5122d80bc7c992c2c86676603e3cc352406a8e8928e4fee8aefac76d756cb579bfda9759108a7c650106950367ff7cd13b32382793aed28653bdb46e06e0ee112886f24d6beb13f1321cc45def23607e298e29a8995cb06534d4b8c11e97aace5a2a006bff4d6b05517ec2964a14c77c499988efa83219eada6d0af333f2d068c5b6bbbdde436ce85dc818b10e620f4d64aadc8edc9da1987e5c50636d5360543381de11001bffe76f0dbbbd9efb0a4946e25e28dc3e6db53179e4eabc22ef19e2cb91a7952c6705a11e27da8b984392b5bf8b74c39b3c648cd05e24ee9d6917269cd04cbd422a6a903d3203144a49cc235bee34fff238a5dd754374cf7e17ef973c762b49f3f6a49df570a2577c7b20d04d949d9c7a1274103df6d1d5548b93d61cc995a5c8ca976e44ed1f83551aab1d30c7d860adb5f20f53d4653f12a435262b1997420b01a5a6dc9c037265f625f6c8726ddedc8006480fd4138dd2d89ab8efbe3bb66096e24840cb89efa0235df3db930e00780e83177f83c6d74f5dafd1be3b40242a58092db696a6c6664585a9bec106a53c3126cf7330ceeeba91f0a7391ba7d1a618c15ac52cf68410516b733dfa1852efbd94a3608148667aadd1eb83b98df7948927c2aa4055b457cd45219cc5706eee9a927fef817133cac21acfba1c94858317c5e277f933df0e426c4367f69ee9dc160b507cace26a3841cbb922d614656a69cd5a27ade7bae6d1805aa3fe476c0d8d609dcad1becba411f1722a1d031513a623cdc9b7f7c63124cd6d6c22de7f5e44d9a03e0fd6d27540ab8e721e8f6e816ea39b30429e4c2de6cba8d172d6e4af7adcb88dd0e993d4ef374971160612a11aa0e378738f6b1dc45ea24cff8458937e6bf4275abe79b6449b9ca3106055ea6fc66e3554529555be5bafa9e9d00e047025335ff425ca6ba0241137becb6a92a4978da7fd777a7628aca37b5a1e146aa84a990128074bca5898369b490aff0d907284de9a6628ffaff507184c3b0ea5500cca303f24eb9bd631e9e1dd16d326200a9d5c133d81ac855f49cf9c04f8cff811f2cb7497fe4225d15f01267a71b40f3f5309491321a25d7ae00b2177231f40a9087e2a6e8b7fc795f6028b9cd5c35b520fc02b071b6ad475f65148f3ae79c9010b52ed8ae542b683785fa9b15eb340833148a4484801ba56fc0999373f8edf3e628924cf5051c676bba8027ecc901719d60d75272d2a4d375ec1b3d118ef5b627be688f3961b35cf42e2647e40ac6564a89b8678f7912407fb20face4e39190501c4bdf04f10f7c6e631d2adc816c28c01acbf4764cf2b477fab681c91ec04637089030af04ab59187c704a5bcfc2bf23e45982236b84ba74f1e57be203a9582441da2a1c5b2bdc533c3adce7197a8b3cb01e56a38363e33e0fdeca79ff2b326d617586690e888ab218bbacf99de1303347ded695e77c14be3b21f683888db353fcb4e75d4855bba27e38cd9a6ef63b3ff961323f6e4ed1da03f7165e4e83f9385036059f84e8dcf504f5f318a67dc9267de2af7c486f7487a11802c434006547719e11289fcd63242b2b33772cd1e03433873fcbea8d8788c2b3e6c7c1934f0e6f74831fd80c7f57848121932bb265086af8943d4416096d1fc85323bd8b28f804c4ebd2a6e37de3738f37add1278dc5c7f3f7ff75bb7b1514ae5a48be7e50483c158786bfb2d1ed01ec838e08e0c3947c53e5f8e012e49ff8255aea2ffd1569015e6db863632666c118e80a5c51ee39e0a84f40e6989f8daa72b23f9d619e8a81e907e4bfcb7a8ded62257475554bad181650602ca1ce60ecc26b43b8fb9be12134474e524d600ff631b13c4364621771a8308c5df535f72496fd3ba2cc82b40fd43af0f421191409f0359d920bb82994802f70b73fb9de389da764910d96b097ffcd7c222c2a037c65ed96955d7435d3dc02582fc48e0d354a56b14779722622c2c78f68f8515300cb4b5a97b54d2cc8733312de98c839cadee8cd7dc406d6fbbdfb78d581499b093683ce1944deb76a83d55ad0afd45fd0174bc384802c819e911a765a9953b92a76f07b736d7f32aee3e6219e534b2591f67483547de9b6977b5cc239fe4ca42eb1130d34d35fdb26d512bc690ad9db15212a28eedff7e5385d661636ea3703f5fb3adae4ec2c6d6fe115831767e5289b2872b628a95c4c5917d0281830674b771679d16430e23f21b34ea5ca3276a288cede6e4d84f07ca0ceba37af59174772170b7e2d41205419ffdf131a42e2a4f9f755ffc2aa915450cca2e440ce03c537d4077b9726614d8d7f3ec233c678a1398a8282cf7773e4df02f462791b25be92be71314e69743360e83a44779ba870f0de691a413d63a4182c14ceba92e81ea6e1d89c58f68b2d7c16f8de31c3a4a373e3aa67603a71c62731474c697659af103725ede5dee61d193c98263ab42fa64aa15ccbfa36f26ccdd1d5a5b437d30cc5426abf48f5d65747dd65676c67ab1c6bf060bde9a077fee888b78be5c62f964eeac2ddb2bedba51cbddd3e4315d570bf17a6982aafd3db2ba4a4573affa5b3befc7befdb20ec8d3f19489028c5de3397003d37631ac77d486b9b6d7105cce9af4b67eb588680b558a87a3a231215add0d19d1e9c17850c640e507f057ce8c6aef792311c9be051263abe974482b767786083f0787a05b2bc657000577e6dc4cf1b1c7b6431c0c35f1859e67a465ea200c5d296081597d3ba8b8692be3a7886dd79f2805b1f9840e2d53eb5980899adc01453645f62155296df17c1c419f08ed4c86bc465e80fcf7a106d07401dd9640d1f68f1ecea81cd1370e99a3c25e9b6ea601bdbcc25bb5aa656d5df6afefaa4baef29e9a365e1fa72ca8baabf5286af145d2440923e29b3501ab926bb423c66f3d7e188fb4e54a0d6f2bf1abd6e1fe016f39faed7fa3439b8b41f934f81812dc769335af8e68f7b0b463f30d57c0bcff6584ed50de7c2620348eacd5b55d20cab11ee838729b48a32f9c0766a02d264e374ed94ba43acc749d7b2d6bcb789ca1930b994172939e056855e6fc4708af5f811051dce2e120f511aab767c50ac98733ba6176374580ac60845787d3ab57d499bd2040d3a16da74b83b29209c95b8b994f2a18b882612268850ae2ee50a7da982356458670ff9b89c6dc89ba234757b8a7aa6f35f9b56fcdcf1a49682a18f915370a16949ac5a3cb5a37c172cb05a73dbac75cd423097522ff9cbc8cf3022b7468d6eb5fc8fa042615cd43417215e8fe738428a13bd63a477c2281c4685790f454d8cf5d1a98b7d6ea680feaa6e4308e766b4fe8880de3fa4a409f1e96634e6c3aa5c5aca1183b378483b41780fa7ad750eea94ce19c60a95e443cd73b4e50243612638d52a1f6476860f962e3de02ffe2ba45eae8bec42de8ed37431c9d8d88e03a1a5a88a82e7ebb2be457bbe3bb550ecf4ac1fcfc22b8ec21d2ad80303cbfa2cc1da2fd0f0fe495d65eb69811238886b6f0f276390a853711dfa49cd54211c7d361e23b324ca5ab8026dc411cc7da2489f967db2fbf412bf693abe313769ccffbe612525fe932c39904f6e581950ebd273912f88506233ad009b747a5ffc8aacdfb9879ac5501e4310cfb46424d8d4f30271e9b1eaa244c4de57602c9fa17c0c1e20a445e1db96dae26da74746ae4db2c390012a5d9df7d54ca6675b0a1850fbc370afcbf16cc51b2e7102a235a7199ad59b8473e351e1e46bd4f9014484555b557ce1e7dc0f17214949e5be4b5f1de178ce269b763ef11a7f6a41ec1c893203017d9cd722aef33983107d8c2b6f06d6522845da73a2c96acde85e4a8300aa3f34218c2af2182d6bd0d2779a3fc806cf33c3513a3205d24593f5cac2726b803d5f89349b0577a38bacbe7b2f3f9b17bdd201843d2f8be60cb5886ce62b26a099700c84cec923c34cd9c7178c5c23feab886730eb216e022c3af5079e6b276c6bc95fe76e0ed2da9cb2ef5f0996e5427961013d0b6f63d6a81f403f3983aa22dc902e3b9a9ef1604c8c32f9871210a9d77f83dd4f8b9f828de8325dd9dfa84383866a0095420c5a7957f513280689db8262fe3a03841b1e01390be16625d6cd42990c4672cded80ca6e40a8c64e8a9dfbd2d0e8b070c47cc755aa035ed3fb0f7f76f6f27eda4575e41642ca3e3069879e174cc3a1c6b023cbf5d6c68bdb2aca6b44bd03af8118232ff280e3cc2bad2f0718e13ecd718c110a048a121fda87a5c3e7aaec1deec8ac5a0df113babba1aa171998a561998a1a08de4ff379cef306530abee751966237b55f360e7098d93055ef6140b2553f7f11ae3f07c2d4d870a06958d89bc3d1c6b3e7bc55ccf7ab268a7d93bfd4f003d494f883359c5529249d6c2d056bd4a7a2dc941d3e30e0301c67ded5f4dfb6e0a696f83ac49db588755574f3da39971e84d984624e93b071e362aa4a96ede52fdc067907564a70440820800804edd8fc8d8f52f20935d69ce4baa702dcd3fccb54117b8e2e3ba1be82fa7b05f80a53de03e57d9f82bf60f62ef614eea6d05df95859cb30ea49cc81574667d1a5ea670dfcce75047bc535fab8f4b0b6e558efbc9956846f4e941b25924d8597f68035c248edae154206f769919c7abb2046008f06aefd56e783436bde992f693017ff1518f360601b51975ab1a66ead2efaf6f4101175839681a915ff7d691d5ca776db2bf9073be0fad549c059ff7abfde54761fc46c937ee96ea4fa4080ca37feda27ff95e26183a0956e819980ed946150021a00c39365571f26a22f478d014f2864dbb523c3cc0bcbab9d3d1faee31dcf8ac9eebd63c64a11c9d25c25c2552419554f122d7606b7ad1a5138394398a1d9f031cf9d90aec16b4baf233dc174a610d67b95260dcd961fe1ca5140d47b74154fc0db35f1abd2f36cf500aac01afbbd4680f8d1cda6d9f64e561e2f731c46db54e7bfa96e5c051ada8ae774f38df0854651d7ef2808be5cfed37283b7dbf6b27b474773657169cf7e3e082bcdede201187a037b1857fb438d3e80ef4657e181e0d0360f9956dadb89379161c2611f3d72ba7dc10afcfb5dd2442f33255c9a0161e3d4744ff132d28befe7c89ff643b6493eddbc84042e5ad943ae86c9d9dbd1e0f5d9c8eb71ed8f010e64ead6c29977ef2fefaa549d35da934624bdfcc9c17875f813735b98745ba95030ab33778cd49f067b0cf5723a39cf32131b4d82a129cddd4cadb3e60b62f1cddd0f8eea390d1dc62ad630e687d142eb4719767e2da766188654ae0a3f02e59f2e299b78e2078d3263c5843ef0a6ad59b478dbe020638370ac13ce675e2b2345ea684a86110340efeca988c9084865fbc41788dfbe6b91c78c5a73200d74b185663b0298889863db425c6d45974d1d368617a03c3dfc5ddfbccb274ce5bded859e7c4af1607066694c6352e2f1dccdea635dbadf225a68f2e36168f2e023a64df1ec2af99da1836213365e0a3c039ad1b7d8d69cda5cdb7b60517c696f89ad95f47cdea515a82fc823a11093ff14dec183ef6499c209245549a7bfbe66b5de0c4be50c98172b63d8461ad4c68d4f16848b2447dff41917de618379a61fc5b353fd1e949f2bfe1196e374bf32214cf3e874af45036bd6a0c6f3bff53177f6a5fd69f2a7ce2965fcc0fab37dc6b857c4d2980115c7be5dc579217a4b172447b09681f3ea628a6bb8e700b35ea9ba68b2a0606395861796382bf523ae72f5c2c2ec787e8221874ce5d67155b0a84077c13be0adeb255cc52df464dbc6174e880d8264dbf95e7cbea30632d07092f8393825da14d1f7d26475f5ce4fd656d3bf803f48e35af981982b4e5ff7495295aaecca75b5f1aa4dd100f1fab340b4fd1c6303839517e1913ebbeef1681a8475ef1c9275636dc8d777ebc1a20ca4d16049123a4752bcbbba0aa6cd26fb677c7b2b30dde7448fe8f8e1039fde487d140a688559e6c60575b28db424c57f81e7b1f5f12c78aeb1fd68e26020cf180ae08d25bb0e1c5ac83e725e0f4c5489d3e39ef59b46113fd5dc0e38245bd1abff5c3aa785e7e5cba9ecb8bead3d02a4d9848d117edb45e7ba4738fe42e626acf1a833534107c2fba445c8f76fb07b06535312cf43ac8f37cb5276b763fc0aa234c3483f57ec93a1d30846f95e1f8d5b4d6c436ac7ff4</script>
-  <div class="hbe hbe-content">
-    <div class="hbe hbe-input hbe-input-default">
-      <input class="hbe hbe-input-field hbe-input-field-default" type="password" id="hbePass">
-      <label class="hbe hbe-input-label hbe-input-label-default" for="hbePass">
-        <span class="hbe hbe-input-label-content hbe-input-label-content-default">请输入文章查看密码</span>
-      </label>
-    </div>
-  </div>
-</div>
-<script data-pjax src="/lib/hbe.js"></script><link href="/css/hbe.style.css" rel="stylesheet" type="text/css">]]></content>
       <categories>
         <category>openstack</category>
       </categories>
       <tags>
         <tag>openstack</tag>
-        <tag>private</tag>
+        <tag>kolla</tag>
       </tags>
   </entry>
 </search>
