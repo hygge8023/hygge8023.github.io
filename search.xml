@@ -1,41 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>OpenStack Neutron trunk ports</title>
-    <url>/2023/06/21/Neutron-trunk%20ports/</url>
-    <content><![CDATA[<p>​     OpenStack Neutron trunk ports （VLAN-aware-VMs）,”VLAN aware VMs”有时也叫做”VM trunk ports”, 主要是让虚拟机收发的vlan tagged报文, 能够被虚拟网络所识别和处理。</p>
-<p>什么是主机的Trunk port？一般来说VLAN只是对交换机可知，主机不感知VLAN，也就是主机网卡发送出来的数据是不带VLAN Tag的。当主机将网卡配置成Trunk port，会在主机的Trunk port上添加多个带有不同VLAN ID的子网卡。通过子网卡发送的数据，会打上VLAN Tag，被发送出去。由于主机发送的网络数据有了变化（带上了VLAN Tag），对主机连接的网络提出了新的要求。另一方面，由于带了不同的VLAN Tag，子网卡可以认为连接在VLAN Tag标识的网络中。这样，不用实际增减主机的网卡，只需要为主机创建带VLAN ID的子网卡，就可以将主机添加到新的VLAN网络中。</p>
-<p>​     OpenStack对VLAN Trunk的支持就是指对OpenStack所管理的虚机的Trunk port，提供网络支持。大多数场景下，主机收发的是不带tag的报文，但是在实际环境中，无论是windows还是Linux环境都通过各自的方法可以收发带有vlan tag的报文。 而一个虚机要想接收不同vlan tag的报文，就需要在虚机上接入不同网络，即在虚机上配置不同网络的虚拟网卡。在NFV（Network Function Virtualization）场景下，若网络数量巨大，网卡数量也巨大，这种实现的方法就不现实；另一方面，连接的多个网络也是动态增减的，如果每次都增减网卡明显也是不方便的。如果使用Trunk port，当需要动态连接多个网络时，只需要动态的创建/删除相应的子网卡即可</p>
-<p>​      OpenStack中虚机的 Trunk port 设置步骤如下：</p>
-<ul>
-<li>需要在网络节点的neutron.conf里配置service_plugins为: “trunk”</li>
-<li>创建网络，如 net0(parent-net), net1,net2等，租户需要几个vlan网络，就需要创建几个对应net</li>
-<li>创建 parentport 端口，一个vm对应一个parentport</li>
-<li>创建 trunk，每一个trunk实例中包含一个parentport, 和若干个其他子接口netport</li>
-<li>创建 vm，指定parentport；在vm内创建子接口接口，并获取 dhcp 地址</li>
-</ul>
-]]></content>
-      <categories>
-        <category>openstack</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>Neutron-l3-agent</title>
-    <url>/2023/06/21/Neutron-l3-agent/</url>
-    <content><![CDATA[<p>Neutron 的路由服务是由 l3 agent 提供的。 除此之外，l3 agent 通过 iptables 提供 firewall 和 floating ip 服务</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell"><span class="hljs-meta prompt_">$ </span><span class="language-bash">openstack network agent list --host network01</span><br>+--------------------------------------+--------------------+------------+-------------------+-------+-------+---------------------------+<br>| ID                                   | Agent Type         | Host       | Availability Zone | Alive | State | Binary                    |<br>+--------------------------------------+--------------------+------------+-------------------+-------+-------+---------------------------+<br>| 178352d1-b827-402b-8ac8-f2529f8c0079 | Metadata agent     | network01 | None              | :-)   | UP    | neutron-metadata-agent    |<br>| 4ace5ae6-ce68-4dfb-85b9-7e1ca139c21f | DHCP agent         | network01 | nova              | :-)   | UP    | neutron-dhcp-agent        |<br>| 90a46a2a-80cf-400f-a5fd-a620155c0a4c | Open vSwitch agent | network01 | None              | :-)   | UP    | neutron-openvswitch-agent |<br>| fac20f42-457a-486f-92c8-1d3eb6f1c39e | L3 agent           | network01 | nova              | :-)   | UP    | neutron-vpn-agent         |<br>+--------------------------------------+--------------------+------------+-------------------+-------+-------+---------------------------+<br></code></pre></td></tr></table></figure>
-
-<p>根据 路由id 可以找到本 router 所在的网络节点</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell"><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_">$ </span><span class="language-bash">openstack router list  --project <span class="hljs-built_in">test</span></span><br>+--------------------------------------+----------------+--------+-------+----------------------------------+-------------+------+<br>| ID                                   | Name           | Status | State | Project                          | Distributed | HA   |<br>+--------------------------------------+----------------+--------+-------+----------------------------------+-------------+------+<br>| 2878b574-9793-45a5-bf39-04e1092fb697 | Default Router | ACTIVE | UP    | 8923b95c43414065a7dcfee1f4d6477b | False       | True |<br>+--------------------------------------+----------------+--------+-------+----------------------------------+-------------+------+<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">获取该路由上的 业务 IP</span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_">$ </span><span class="language-bash">openstack floating ip list --router 2878b574-9793-45a5-bf39-04e1092fb697</span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">环境为高可用主备router节点，HA State 为 standby 表示待用状态</span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_">$ </span><span class="language-bash">openstack network agent list --router 2878b574-9793-45a5-bf39-04e1092fb697 --long</span><br>+--------------------------------------+------------+------------+-------------------+-------+-------+-------------------+----------+<br>| ID                                   | Agent Type | Host       | Availability Zone | Alive | State | Binary            | HA State |<br>+--------------------------------------+------------+------------+-------------------+-------+-------+-------------------+----------+<br>| 8add8415-5956-462a-93d1-e9a97c7a3cbe | L3 agent   | network02 | nova              | :-)   | UP    | neutron-vpn-agent | active   |<br>| e123a05b-fe85-4207-b0aa-ff2a3a9169e4 | L3 agent   | network03 | nova              | :-)   | UP    | neutron-vpn-agent | standby  |<br>+--------------------------------------+------------+------------+-------------------+-------+-------+-------------------+----------+<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_">[root@network02~]# </span><span class="language-bash">ip netns <span class="hljs-built_in">ls</span>  |grep  2878b574-9793-45a5-bf39-04e1092fb697</span><br>qrouter-2878b574-9793-45a5-bf39-04e1092fb697 (id: 36)<br><br><br></code></pre></td></tr></table></figure>
-]]></content>
-      <categories>
-        <category>openstack</category>
-      </categories>
-      <tags>
-        <tag>openstack</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>ceph-ansible配置文件详解</title>
     <url>/2023/06/21/ceph-ansible%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E8%AF%A6%E8%A7%A3/</url>
     <content><![CDATA[<blockquote>
@@ -92,104 +57,6 @@
       <tags>
         <tag>ceph</tag>
         <tag>ceph-ansible</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>kolla-ansible 部署报错</title>
-    <url>/2023/05/24/kolla-ansible-issue/</url>
-    <content><![CDATA[<h2 id="问题现象："><a href="#问题现象：" class="headerlink" title="问题现象："></a>问题现象：</h2><p>环境：系统 centos7，通过 kolla-ansible 部署 train 版 Openstack，在 deploy 部署阶段执行到任务 </p>
-<p>TASK [service-rabbitmq : nova | Ensure RabbitMQ users exist] 报错 FAILED - RETRYING: nova | Ensure RabbitMQ users exist (5 retries left). 详情如下图：</p>
-<p><img src="/2023/05/24/kolla-ansible-issue/1.png"></p>
-<h2 id="问题分析："><a href="#问题分析：" class="headerlink" title="问题分析："></a>问题分析：</h2><p>查询相关博客给出的解决办法是清理部署环境，重新部署。但我清理多次部署还是会报错如上图。</p>
-<p>后谷歌相关资料，发现很多人部署都出现过这个问题，其实是 kolla-ansible 的一个bug，需要修改一下配置文件。并且This issue was fixed in the openstack/kolla-ansible 14.0.0.0rc1 release candidate.</p>
-<p><a href="https://bugs.launchpad.net/kolla-ansible/+bug/1946506">原文链接</a></p>
-<h2 id="解决办法："><a href="#解决办法：" class="headerlink" title="解决办法："></a>解决办法：</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">vi /usr/share/kolla-ansible/ansible/roles/service-rabbitmq/tasks/main.yml <br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">在第 21 行 添加如下代码</span><br><br>node: &quot;rabbit@&#123;&#123; ansible_facts.hostname &#125;&#125;&quot;<br></code></pre></td></tr></table></figure>
-
-<p>如图：</p>
-<p><img src="/2023/05/24/kolla-ansible-issue/2.jpeg"></p>
-<p>此时再去执行 deploy，安装成功 </p>
-]]></content>
-      <categories>
-        <category>openstack</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>kolla-ansible 部署 openstack—train</title>
-    <url>/2023/06/21/kolla%E9%83%A8%E7%BD%B2openstack-Train/</url>
-    <content><![CDATA[<h1 id="环境介绍"><a href="#环境介绍" class="headerlink" title="环境介绍"></a>环境介绍</h1><p>系统：centos7<br>三台云主机</p>
-<h1 id="节点规划"><a href="#节点规划" class="headerlink" title="节点规划"></a>节点规划</h1><table>
-<thead>
-<tr>
-<th>主机名</th>
-<th>ip 地址</th>
-<th>角色</th>
-<th>内存/CPU</th>
-<th>网卡—eth0</th>
-<th>网卡—eth1</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>controller</td>
-<td>192.168.100.11</td>
-<td>控制节点</td>
-<td>8G/2核</td>
-<td>192.168.100.11</td>
-<td>none</td>
-</tr>
-<tr>
-<td>compute</td>
-<td>192.168.100.9</td>
-<td>计算节点</td>
-<td>8G/2核</td>
-<td>192.168.100.9</td>
-<td>none</td>
-</tr>
-<tr>
-<td>storage</td>
-<td>192.168.100.4</td>
-<td>存储节点</td>
-<td>8G/2核</td>
-<td>192.168.100.4</td>
-<td>none</td>
-</tr>
-</tbody></table>
-<h1 id="安装步骤"><a href="#安装步骤" class="headerlink" title="安装步骤"></a>安装步骤</h1><h2 id="一-、基础环境准备："><a href="#一-、基础环境准备：" class="headerlink" title="(一)、基础环境准备："></a>(一)、基础环境准备：</h2><p><strong>++ 所有节点操作================</strong></p>
-<h3 id="1、-修改主机名-amp-配置主机映射"><a href="#1、-修改主机名-amp-配置主机映射" class="headerlink" title="1、 修改主机名&amp;配置主机映射"></a>1、 修改主机名&amp;配置主机映射</h3><h3 id="2、-关闭-防火墙-amp-selinux"><a href="#2、-关闭-防火墙-amp-selinux" class="headerlink" title="2、 关闭 防火墙&amp;selinux"></a>2、 关闭 防火墙&amp;selinux</h3><h3 id="3、-ssh-免密配置"><a href="#3、-ssh-免密配置" class="headerlink" title="3、 ssh 免密配置"></a>3、 ssh 免密配置</h3><blockquote>
-<p>部署节点和其他节点免密登陆</p>
-</blockquote>
-<h3 id="4、-安装配置-docker"><a href="#4、-安装配置-docker" class="headerlink" title="4、 安装配置 docker"></a>4、 安装配置 docker</h3><blockquote>
-<p>开启 Docker 的共享挂载功能：所谓共享挂载即同一个目录或设备可以挂载到多个不同的路径并且能够保持互相之间的共享可见性，类似于 mount –shared。在 OpenStack for Kolla 中，主要解决 Neutron 的 namespace 在不同 container 中得以保持实效性的问题。</p>
-</blockquote>
-<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell"><span class="hljs-meta prompt_"># </span><span class="language-bash">安装 docker</span><br>yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo<br>yum install -y docker-ce<br>systemctl enable docker &amp;&amp; systemctl start docker<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">设置 Docker 的镜像源</span><br>mkdir -p /etc/docker<br>vim /etc/docker/daemon.json <br>&#123; <br>&quot;registry-mirrors&quot;: [&quot;https://docker.mirrors.ustc.edu.cn&quot;] <br>&#125;<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">设置 Docker 挂载卷的方式为 Share</span><br>mkdir -p /etc/systemd/system/docker.service.d<br>cat /etc/systemd/system/docker.service.d/kolla.conf <br>[Service] <br>MountFlags=shared<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">重启 docker</span><br>systemctl daemon-reload &amp;&amp; systemctl restart docker<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">查看 docker 信息</span><br>docker info<br><br></code></pre></td></tr></table></figure>
-<h3 id="5、-设置-pip-下载源"><a href="#5、-设置-pip-下载源" class="headerlink" title="5、 设置 pip 下载源"></a>5、 设置 pip 下载源</h3><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">mkdir .pip<br>cat &gt; .pip/pip.conf &lt;&lt; EOF<br>[global]<br>index-url=http://mirrors.aliyun.com/pypi/simple/<br>[install]<br>trusted-host=mirrors.aliyun.com<br>EOF<br><br></code></pre></td></tr></table></figure>
-
-<h3 id="6、-安装-pip"><a href="#6、-安装-pip" class="headerlink" title="6、  安装 pip"></a>6、  安装 pip</h3><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell"><span class="hljs-meta prompt_"># </span><span class="language-bash">安装 pip</span><br><br>curl https://bootstrap.pypa.io/pip/2.7/get-pip.py -o get-pip27.py<br>python get-pip27.py<br><br></code></pre></td></tr></table></figure>
-
-<p><strong>++ controller 节点操作================</strong></p>
-<h3 id="7、-安装-ansible-kolla-ansible"><a href="#7、-安装-ansible-kolla-ansible" class="headerlink" title="7、  安装 ansible/kolla-ansible"></a>7、  <strong>安装 ansible/kolla-ansible</strong></h3><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell"><span class="hljs-meta prompt_"># </span><span class="language-bash">安装 ansible</span><br>pip install ansible===2.9.0<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">安装 kolla-anisble</span><br>pip install pbr<br>pip install kolla-ansible --ignore-installed requests<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash"> 根据报错可选安装</span><br>pip install setuptools-scm<br>pip install -U setuptools<br>pip install kolla-ansible --ignore-installed PyYAML<br><br></code></pre></td></tr></table></figure>
-
-<h3 id="8、-安装配置-python-虚拟环境"><a href="#8、-安装配置-python-虚拟环境" class="headerlink" title="8、  安装配置 python 虚拟环境"></a>8、  <strong>安装配置 python 虚拟环境</strong></h3><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell"><span class="hljs-meta prompt_"># </span><span class="language-bash">安装 Python virtualenv 相关依赖</span><br>yum -y install python-virtualenv  <br>mkdir /opt/kolla<br>virtualenv /opt/kolla/<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">创建并激活一个 Python 虚拟环境</span><br>source /opt/kolla/bin/activate    <br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">退出虚拟环境</span><br>deactivate<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">删除虚拟环境，只需删除对应的虚拟环境文件夹即可</span><br><br></code></pre></td></tr></table></figure>
-
-
-<h2 id="（二）-配置-kolla-ansible："><a href="#（二）-配置-kolla-ansible：" class="headerlink" title="（二）  配置 kolla-ansible："></a>（二）  <strong>配置 kolla-ansible：</strong></h2><h3 id="1、-复制模版文件"><a href="#1、-复制模版文件" class="headerlink" title="1、  复制模版文件"></a>1、  <strong>复制模版文件</strong></h3><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">cp /usr/share/kolla-ansible/etc_examples/kolla/* /etc/kolla/<br>cp /usr/share/kolla-ansible/ansible/inventory/* /etc/kolla/<br></code></pre></td></tr></table></figure>
-
-<h3 id="2、修改部署配置文件—globals-yml"><a href="#2、修改部署配置文件—globals-yml" class="headerlink" title="2、修改部署配置文件—globals.yml"></a>2、修改部署配置文件—globals.yml</h3><blockquote>
-<p>可根据需要自行改</p>
-</blockquote>
-<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">---<br>kolla_base_distro: &quot;centos&quot;<br>kolla_install_type: &quot;source&quot;<br>openstack_release: &quot;train&quot;<br>kolla_internal_vip_address: &quot;192.168.100.11&quot;<br>network_interface: &quot;eth0&quot;<br>neutron_external_interface: &quot;eth1&quot;<br>enable_haproxy: &quot;no&quot;<br>enable_cinder: &quot;no&quot;<br>nova_compute_virt_type: &quot;qemu&quot;<br></code></pre></td></tr></table></figure>
-
-<h3 id="3、编辑文件—multinode"><a href="#3、编辑文件—multinode" class="headerlink" title="3、编辑文件—multinode"></a>3、编辑文件—multinode</h3><h3 id="4、配置密码文件—passwords-yml"><a href="#4、配置密码文件—passwords-yml" class="headerlink" title="4、配置密码文件—passwords.yml"></a>4、配置密码文件—passwords.yml</h3><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell"><span class="hljs-meta prompt_"># </span><span class="language-bash">生成密码至 passwords.yml</span><br>kolla-genpwd<br></code></pre></td></tr></table></figure>
-
-<h2 id="（三）-部署-openstack-环境"><a href="#（三）-部署-openstack-环境" class="headerlink" title="（三） 部署 openstack 环境"></a>（三） 部署 openstack 环境</h2><h3 id="1、安装-openstack-云平台"><a href="#1、安装-openstack-云平台" class="headerlink" title="1、安装 openstack 云平台"></a>1、安装 openstack 云平台</h3><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell"><span class="hljs-meta prompt_"># </span><span class="language-bash">测试节点连通性</span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">bootstrap-server安装 OpenStack 所需的依赖包</span><br>kolla-ansible -i multinode bootstrap-servers<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">检查配置</span><br>kolla-ansible prechecks  -i multinode <br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">下载openstack各个组件容器镜像</span> <br>kolla-ansible pull -i /etc/kolla/multinode<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">-vvv: 此参数添加，可打印出详情</span><br>kolla-ansible -i multinode deploy <br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">生成环境脚本</span><br>kolla-ansible post-deploy /etc/kolla/admin-openrc.sh<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">遇到报错，销毁已安装的环境</span><br>kolla-ansible  destroy  ./multinode    --yes-i-really-really-mean-it<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">调整配置及重新部署</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">编辑 globals.yml 后, 然后运行 reconfigure 使用 -t 参数可以只对变动的模块进行调整</span><br>kolla-ansible -i /etc/kolla/multinode reconfigure -t neutron<br>kolla-ansible -i /etc/kolla/multinode  deploy -t neutron<br><br></code></pre></td></tr></table></figure>
-
-<h3 id="2、安装-openstack-客户端"><a href="#2、安装-openstack-客户端" class="headerlink" title="2、安装 openstack 客户端"></a>2、安装 openstack 客户端</h3><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">docker run -d --name client \<br>  --restart always \<br>  -v /etc/kolla/admin-openrc.sh:/admin-openrc.sh:ro \<br>  -v /usr/share/kolla-ansible/init-runonce:/init-runonce:rw \<br>  kolla/centos-binary-openstack-base:train sleep infinity<br> <br>docker exec -it client bash<br>source /admin-openrc.sh<br>openstack service list<br></code></pre></td></tr></table></figure>
-]]></content>
-      <categories>
-        <category>openstack</category>
-      </categories>
-      <tags>
-        <tag>openstack</tag>
-        <tag>kolla</tag>
       </tags>
   </entry>
   <entry>
@@ -276,6 +143,188 @@
         <category>ceph</category>
         <category>ansible</category>
       </categories>
+  </entry>
+  <entry>
+    <title>kolla-ansible 部署报错</title>
+    <url>/2023/05/24/kolla-ansible-issue/</url>
+    <content><![CDATA[<h2 id="问题现象："><a href="#问题现象：" class="headerlink" title="问题现象："></a>问题现象：</h2><p>环境：系统 centos7，通过 kolla-ansible 部署 train 版 Openstack，在 deploy 部署阶段执行到任务 </p>
+<p>TASK [service-rabbitmq : nova | Ensure RabbitMQ users exist] 报错 FAILED - RETRYING: nova | Ensure RabbitMQ users exist (5 retries left). 详情如下图：</p>
+<p><img src="/2023/05/24/kolla-ansible-issue/1.png"></p>
+<h2 id="问题分析："><a href="#问题分析：" class="headerlink" title="问题分析："></a>问题分析：</h2><p>查询相关博客给出的解决办法是清理部署环境，重新部署。但我清理多次部署还是会报错如上图。</p>
+<p>后谷歌相关资料，发现很多人部署都出现过这个问题，其实是 kolla-ansible 的一个bug，需要修改一下配置文件。并且This issue was fixed in the openstack/kolla-ansible 14.0.0.0rc1 release candidate.</p>
+<p><a href="https://bugs.launchpad.net/kolla-ansible/+bug/1946506">原文链接</a></p>
+<h2 id="解决办法："><a href="#解决办法：" class="headerlink" title="解决办法："></a>解决办法：</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">vi /usr/share/kolla-ansible/ansible/roles/service-rabbitmq/tasks/main.yml <br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">在第 21 行 添加如下代码</span><br><br>node: &quot;rabbit@&#123;&#123; ansible_facts.hostname &#125;&#125;&quot;<br></code></pre></td></tr></table></figure>
+
+<p>如图：</p>
+<p><img src="/2023/05/24/kolla-ansible-issue/2.jpeg"></p>
+<p>此时再去执行 deploy，安装成功 </p>
+]]></content>
+      <categories>
+        <category>openstack</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Neutron-l3-agent</title>
+    <url>/2023/06/21/Neutron-l3-agent/</url>
+    <content><![CDATA[<p>Neutron 的路由服务是由 l3 agent 提供的。 除此之外，l3 agent 通过 iptables 提供 firewall 和 floating ip 服务</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell"><span class="hljs-meta prompt_">$ </span><span class="language-bash">openstack network agent list --host network01</span><br>+--------------------------------------+--------------------+------------+-------------------+-------+-------+---------------------------+<br>| ID                                   | Agent Type         | Host       | Availability Zone | Alive | State | Binary                    |<br>+--------------------------------------+--------------------+------------+-------------------+-------+-------+---------------------------+<br>| 178352d1-b827-402b-8ac8-f2529f8c0079 | Metadata agent     | network01 | None              | :-)   | UP    | neutron-metadata-agent    |<br>| 4ace5ae6-ce68-4dfb-85b9-7e1ca139c21f | DHCP agent         | network01 | nova              | :-)   | UP    | neutron-dhcp-agent        |<br>| 90a46a2a-80cf-400f-a5fd-a620155c0a4c | Open vSwitch agent | network01 | None              | :-)   | UP    | neutron-openvswitch-agent |<br>| fac20f42-457a-486f-92c8-1d3eb6f1c39e | L3 agent           | network01 | nova              | :-)   | UP    | neutron-vpn-agent         |<br>+--------------------------------------+--------------------+------------+-------------------+-------+-------+---------------------------+<br></code></pre></td></tr></table></figure>
+
+<p>根据 路由id 可以找到本 router 所在的网络节点</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell"><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_">$ </span><span class="language-bash">openstack router list  --project <span class="hljs-built_in">test</span></span><br>+--------------------------------------+----------------+--------+-------+----------------------------------+-------------+------+<br>| ID                                   | Name           | Status | State | Project                          | Distributed | HA   |<br>+--------------------------------------+----------------+--------+-------+----------------------------------+-------------+------+<br>| 2878b574-9793-45a5-bf39-04e1092fb697 | Default Router | ACTIVE | UP    | 8923b95c43414065a7dcfee1f4d6477b | False       | True |<br>+--------------------------------------+----------------+--------+-------+----------------------------------+-------------+------+<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">获取该路由上的 业务 IP</span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_">$ </span><span class="language-bash">openstack floating ip list --router 2878b574-9793-45a5-bf39-04e1092fb697</span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">环境为高可用主备router节点，HA State 为 standby 表示待用状态</span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_">$ </span><span class="language-bash">openstack network agent list --router 2878b574-9793-45a5-bf39-04e1092fb697 --long</span><br>+--------------------------------------+------------+------------+-------------------+-------+-------+-------------------+----------+<br>| ID                                   | Agent Type | Host       | Availability Zone | Alive | State | Binary            | HA State |<br>+--------------------------------------+------------+------------+-------------------+-------+-------+-------------------+----------+<br>| 8add8415-5956-462a-93d1-e9a97c7a3cbe | L3 agent   | network02 | nova              | :-)   | UP    | neutron-vpn-agent | active   |<br>| e123a05b-fe85-4207-b0aa-ff2a3a9169e4 | L3 agent   | network03 | nova              | :-)   | UP    | neutron-vpn-agent | standby  |<br>+--------------------------------------+------------+------------+-------------------+-------+-------+-------------------+----------+<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_">[root@network02~]# </span><span class="language-bash">ip netns <span class="hljs-built_in">ls</span>  |grep  2878b574-9793-45a5-bf39-04e1092fb697</span><br>qrouter-2878b574-9793-45a5-bf39-04e1092fb697 (id: 36)<br><br><br></code></pre></td></tr></table></figure>
+]]></content>
+      <categories>
+        <category>openstack</category>
+      </categories>
+      <tags>
+        <tag>openstack</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>OpenStack Neutron trunk ports</title>
+    <url>/2023/06/21/Neutron-trunk%20ports/</url>
+    <content><![CDATA[<p>​     OpenStack Neutron trunk ports （VLAN-aware-VMs）,”VLAN aware VMs”有时也叫做”VM trunk ports”, 主要是让虚拟机收发的vlan tagged报文, 能够被虚拟网络所识别和处理。</p>
+<p>什么是主机的Trunk port？一般来说VLAN只是对交换机可知，主机不感知VLAN，也就是主机网卡发送出来的数据是不带VLAN Tag的。当主机将网卡配置成Trunk port，会在主机的Trunk port上添加多个带有不同VLAN ID的子网卡。通过子网卡发送的数据，会打上VLAN Tag，被发送出去。由于主机发送的网络数据有了变化（带上了VLAN Tag），对主机连接的网络提出了新的要求。另一方面，由于带了不同的VLAN Tag，子网卡可以认为连接在VLAN Tag标识的网络中。这样，不用实际增减主机的网卡，只需要为主机创建带VLAN ID的子网卡，就可以将主机添加到新的VLAN网络中。</p>
+<p>​     OpenStack对VLAN Trunk的支持就是指对OpenStack所管理的虚机的Trunk port，提供网络支持。大多数场景下，主机收发的是不带tag的报文，但是在实际环境中，无论是windows还是Linux环境都通过各自的方法可以收发带有vlan tag的报文。 而一个虚机要想接收不同vlan tag的报文，就需要在虚机上接入不同网络，即在虚机上配置不同网络的虚拟网卡。在NFV（Network Function Virtualization）场景下，若网络数量巨大，网卡数量也巨大，这种实现的方法就不现实；另一方面，连接的多个网络也是动态增减的，如果每次都增减网卡明显也是不方便的。如果使用Trunk port，当需要动态连接多个网络时，只需要动态的创建/删除相应的子网卡即可</p>
+<p>​      OpenStack中虚机的 Trunk port 设置步骤如下：</p>
+<ul>
+<li>需要在网络节点的neutron.conf里配置service_plugins为: “trunk”</li>
+<li>创建网络，如 net0(parent-net), net1,net2等，租户需要几个vlan网络，就需要创建几个对应net</li>
+<li>创建 parentport 端口，一个vm对应一个parentport</li>
+<li>创建 trunk，每一个trunk实例中包含一个parentport, 和若干个其他子接口netport</li>
+<li>创建 vm，指定parentport；在vm内创建子接口接口，并获取 dhcp 地址</li>
+</ul>
+]]></content>
+      <categories>
+        <category>openstack</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>kolla-ansible 部署 openstack—train</title>
+    <url>/2023/06/21/kolla%E9%83%A8%E7%BD%B2openstack-Train/</url>
+    <content><![CDATA[<h1 id="环境介绍"><a href="#环境介绍" class="headerlink" title="环境介绍"></a>环境介绍</h1><p>系统：centos7<br>三台云主机</p>
+<h1 id="节点规划"><a href="#节点规划" class="headerlink" title="节点规划"></a>节点规划</h1><table>
+<thead>
+<tr>
+<th>主机名</th>
+<th>ip 地址</th>
+<th>角色</th>
+<th>内存/CPU</th>
+<th>网卡—eth0</th>
+<th>网卡—eth1</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>controller</td>
+<td>192.168.100.11</td>
+<td>控制节点</td>
+<td>8G/2核</td>
+<td>192.168.100.11</td>
+<td>none</td>
+</tr>
+<tr>
+<td>compute</td>
+<td>192.168.100.9</td>
+<td>计算节点</td>
+<td>8G/2核</td>
+<td>192.168.100.9</td>
+<td>none</td>
+</tr>
+<tr>
+<td>storage</td>
+<td>192.168.100.4</td>
+<td>存储节点</td>
+<td>8G/2核</td>
+<td>192.168.100.4</td>
+<td>none</td>
+</tr>
+</tbody></table>
+<h1 id="安装步骤"><a href="#安装步骤" class="headerlink" title="安装步骤"></a>安装步骤</h1><h2 id="一-、基础环境准备："><a href="#一-、基础环境准备：" class="headerlink" title="(一)、基础环境准备："></a>(一)、基础环境准备：</h2><p><strong>++ 所有节点操作================</strong></p>
+<h3 id="1、-修改主机名-amp-配置主机映射"><a href="#1、-修改主机名-amp-配置主机映射" class="headerlink" title="1、 修改主机名&amp;配置主机映射"></a>1、 修改主机名&amp;配置主机映射</h3><h3 id="2、-关闭-防火墙-amp-selinux"><a href="#2、-关闭-防火墙-amp-selinux" class="headerlink" title="2、 关闭 防火墙&amp;selinux"></a>2、 关闭 防火墙&amp;selinux</h3><h3 id="3、-ssh-免密配置"><a href="#3、-ssh-免密配置" class="headerlink" title="3、 ssh 免密配置"></a>3、 ssh 免密配置</h3><blockquote>
+<p>部署节点和其他节点免密登陆</p>
+</blockquote>
+<h3 id="4、-安装配置-docker"><a href="#4、-安装配置-docker" class="headerlink" title="4、 安装配置 docker"></a>4、 安装配置 docker</h3><blockquote>
+<p>开启 Docker 的共享挂载功能：所谓共享挂载即同一个目录或设备可以挂载到多个不同的路径并且能够保持互相之间的共享可见性，类似于 mount –shared。在 OpenStack for Kolla 中，主要解决 Neutron 的 namespace 在不同 container 中得以保持实效性的问题。</p>
+</blockquote>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell"><span class="hljs-meta prompt_"># </span><span class="language-bash">安装 docker</span><br>yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo<br>yum install -y docker-ce<br>systemctl enable docker &amp;&amp; systemctl start docker<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">设置 Docker 的镜像源</span><br>mkdir -p /etc/docker<br>vim /etc/docker/daemon.json <br>&#123; <br>&quot;registry-mirrors&quot;: [&quot;https://docker.mirrors.ustc.edu.cn&quot;] <br>&#125;<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">设置 Docker 挂载卷的方式为 Share</span><br>mkdir -p /etc/systemd/system/docker.service.d<br>cat /etc/systemd/system/docker.service.d/kolla.conf <br>[Service] <br>MountFlags=shared<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">重启 docker</span><br>systemctl daemon-reload &amp;&amp; systemctl restart docker<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">查看 docker 信息</span><br>docker info<br><br></code></pre></td></tr></table></figure>
+<h3 id="5、-设置-pip-下载源"><a href="#5、-设置-pip-下载源" class="headerlink" title="5、 设置 pip 下载源"></a>5、 设置 pip 下载源</h3><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">mkdir .pip<br>cat &gt; .pip/pip.conf &lt;&lt; EOF<br>[global]<br>index-url=http://mirrors.aliyun.com/pypi/simple/<br>[install]<br>trusted-host=mirrors.aliyun.com<br>EOF<br><br></code></pre></td></tr></table></figure>
+
+<h3 id="6、-安装-pip"><a href="#6、-安装-pip" class="headerlink" title="6、  安装 pip"></a>6、  安装 pip</h3><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell"><span class="hljs-meta prompt_"># </span><span class="language-bash">安装 pip</span><br><br>curl https://bootstrap.pypa.io/pip/2.7/get-pip.py -o get-pip27.py<br>python get-pip27.py<br><br></code></pre></td></tr></table></figure>
+
+<p><strong>++ controller 节点操作================</strong></p>
+<h3 id="7、-安装-ansible-kolla-ansible"><a href="#7、-安装-ansible-kolla-ansible" class="headerlink" title="7、  安装 ansible/kolla-ansible"></a>7、  <strong>安装 ansible/kolla-ansible</strong></h3><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell"><span class="hljs-meta prompt_"># </span><span class="language-bash">安装 ansible</span><br>pip install ansible===2.9.0<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">安装 kolla-anisble</span><br>pip install pbr<br>pip install kolla-ansible --ignore-installed requests<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash"> 根据报错可选安装</span><br>pip install setuptools-scm<br>pip install -U setuptools<br>pip install kolla-ansible --ignore-installed PyYAML<br><br></code></pre></td></tr></table></figure>
+
+<h3 id="8、-安装配置-python-虚拟环境"><a href="#8、-安装配置-python-虚拟环境" class="headerlink" title="8、  安装配置 python 虚拟环境"></a>8、  <strong>安装配置 python 虚拟环境</strong></h3><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell"><span class="hljs-meta prompt_"># </span><span class="language-bash">安装 Python virtualenv 相关依赖</span><br>yum -y install python-virtualenv  <br>mkdir /opt/kolla<br>virtualenv /opt/kolla/<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">创建并激活一个 Python 虚拟环境</span><br>source /opt/kolla/bin/activate    <br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">退出虚拟环境</span><br>deactivate<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">删除虚拟环境，只需删除对应的虚拟环境文件夹即可</span><br><br></code></pre></td></tr></table></figure>
+
+
+<h2 id="（二）-配置-kolla-ansible："><a href="#（二）-配置-kolla-ansible：" class="headerlink" title="（二）  配置 kolla-ansible："></a>（二）  <strong>配置 kolla-ansible：</strong></h2><h3 id="1、-复制模版文件"><a href="#1、-复制模版文件" class="headerlink" title="1、  复制模版文件"></a>1、  <strong>复制模版文件</strong></h3><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">cp /usr/share/kolla-ansible/etc_examples/kolla/* /etc/kolla/<br>cp /usr/share/kolla-ansible/ansible/inventory/* /etc/kolla/<br></code></pre></td></tr></table></figure>
+
+<h3 id="2、修改部署配置文件—globals-yml"><a href="#2、修改部署配置文件—globals-yml" class="headerlink" title="2、修改部署配置文件—globals.yml"></a>2、修改部署配置文件—globals.yml</h3><blockquote>
+<p>可根据需要自行改</p>
+</blockquote>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">---<br>kolla_base_distro: &quot;centos&quot;<br>kolla_install_type: &quot;source&quot;<br>openstack_release: &quot;train&quot;<br>kolla_internal_vip_address: &quot;192.168.100.11&quot;<br>network_interface: &quot;eth0&quot;<br>neutron_external_interface: &quot;eth1&quot;<br>enable_haproxy: &quot;no&quot;<br>enable_cinder: &quot;no&quot;<br>nova_compute_virt_type: &quot;qemu&quot;<br></code></pre></td></tr></table></figure>
+
+<h3 id="3、编辑文件—multinode"><a href="#3、编辑文件—multinode" class="headerlink" title="3、编辑文件—multinode"></a>3、编辑文件—multinode</h3><h3 id="4、配置密码文件—passwords-yml"><a href="#4、配置密码文件—passwords-yml" class="headerlink" title="4、配置密码文件—passwords.yml"></a>4、配置密码文件—passwords.yml</h3><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell"><span class="hljs-meta prompt_"># </span><span class="language-bash">生成密码至 passwords.yml</span><br>kolla-genpwd<br></code></pre></td></tr></table></figure>
+
+<h2 id="（三）-部署-openstack-环境"><a href="#（三）-部署-openstack-环境" class="headerlink" title="（三） 部署 openstack 环境"></a>（三） 部署 openstack 环境</h2><h3 id="1、安装-openstack-云平台"><a href="#1、安装-openstack-云平台" class="headerlink" title="1、安装 openstack 云平台"></a>1、安装 openstack 云平台</h3><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell"><span class="hljs-meta prompt_"># </span><span class="language-bash">测试节点连通性</span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">bootstrap-server安装 OpenStack 所需的依赖包</span><br>kolla-ansible -i multinode bootstrap-servers<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">检查配置</span><br>kolla-ansible prechecks  -i multinode <br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">下载openstack各个组件容器镜像</span> <br>kolla-ansible pull -i /etc/kolla/multinode<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">-vvv: 此参数添加，可打印出详情</span><br>kolla-ansible -i multinode deploy <br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">生成环境脚本</span><br>kolla-ansible post-deploy /etc/kolla/admin-openrc.sh<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">遇到报错，销毁已安装的环境</span><br>kolla-ansible  destroy  ./multinode    --yes-i-really-really-mean-it<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">调整配置及重新部署</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">编辑 globals.yml 后, 然后运行 reconfigure 使用 -t 参数可以只对变动的模块进行调整</span><br>kolla-ansible -i /etc/kolla/multinode reconfigure -t neutron<br>kolla-ansible -i /etc/kolla/multinode  deploy -t neutron<br><br></code></pre></td></tr></table></figure>
+
+<h3 id="2、安装-openstack-客户端"><a href="#2、安装-openstack-客户端" class="headerlink" title="2、安装 openstack 客户端"></a>2、安装 openstack 客户端</h3><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">docker run -d --name client \<br>  --restart always \<br>  -v /etc/kolla/admin-openrc.sh:/admin-openrc.sh:ro \<br>  -v /usr/share/kolla-ansible/init-runonce:/init-runonce:rw \<br>  kolla/centos-binary-openstack-base:train sleep infinity<br> <br>docker exec -it client bash<br>source /admin-openrc.sh<br>openstack service list<br></code></pre></td></tr></table></figure>
+]]></content>
+      <categories>
+        <category>openstack</category>
+      </categories>
+      <tags>
+        <tag>openstack</tag>
+        <tag>kolla</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>openstack常用命令整理</title>
+    <url>/2023/06/21/openstack%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/</url>
+    <content><![CDATA[<h2 id="配额-「quota」"><a href="#配额-「quota」" class="headerlink" title="配额 「quota」"></a>配额 「quota」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack quota set --ram 1024 --instances 5 --cores 3 &#123;项目名&#125;     # 项目限制配额<br></code></pre></td></tr></table></figure>
+
+<h2 id="虚拟机-「server」"><a href="#虚拟机-「server」" class="headerlink" title="虚拟机 「server」"></a>虚拟机 「server」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack console url show &#123;虚拟机名字&#125;<br>openstack server delete &#123;虚拟机名字&#125;<br>openstack server force-delete &#123;虚拟机名字&#125;       # 强制删除虚机<br>openstack server list / show  <br>openstack server resize      # 调整云主机大小<br>openstack server event list --long &#123;虚拟机 id&#125;    # 查询云主机的事件<br></code></pre></td></tr></table></figure>
+
+<h2 id="搁置-「shelve」"><a href="#搁置-「shelve」" class="headerlink" title="搁置 「shelve」"></a>搁置 「shelve」</h2><p>对于一些长时间不使用的虚拟机，即使处于关机状态，仍然会占用着集群资源<br>如果需要释放这些资源,则使用shelve来操作,该操作会将server实例作为image保存到glance中,然后在宿主机中删除该server实例</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack server shelve &#123;虚机id&#125;  # 机器开启搁置状态 （搁置状态：--status SHELVED_OFFLOADED ）<br>openstack server unshelve     # 取消搁置的机器<br></code></pre></td></tr></table></figure>
+
+<h2 id="镜像-「image」"><a href="#镜像-「image」" class="headerlink" title="镜像 「image」"></a>镜像 「image」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">共享私有镜像给其他项目<br><br>openstack image set --shared &#123;镜像id&#125;    # 镜像设置为共享<br>openstack image add project  &#123;镜像id&#125;  &#123;目标项目id&#125; <br>openstack role add --user &#123;&#125;  project_member --project  &#123;目标项目id&#125; <br><br>export OS_PROJECT_NAME=&#123;目标项目名&#125;       # 切换项目<br>openstack image set --accept &#123;目标镜像id&#125; <br>export OS_PROJECT_NAME=&#123;&#125;<br>openstack role remove --user &#123;&#125; project_member --project &#123;目标项目id&#125;<br><br>openstack image member list &#123;目标镜像id&#125;     # 验证是否共享成功<br><br>openstack image set  # 更新镜像<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="网络-「network」"><a href="#网络-「network」" class="headerlink" title="网络 「network」"></a>网络 「network」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack floating ip list <br><br>云主机添加无IP的网卡<br>openstack network list --project &#123;项目名&#125;    # 查看项目下网络<br><br>openstack port create  --network  &#123;网络id/name&#125;   &#123;端口名&#125;     在不指定IP地址的情况下创建一个端口<br><br>创建指定IP地址的端口<br>openstack port create --network net1 --fixed-ip subnet=subnet1,ip-address=192.0.2.40 &#123;端口名&#125;  <br><br>openstack port list <br>nova interface-attach --port-id  &#123;port id&#125;   &#123;server id&#125;   <br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="支付者-「assignment」"><a href="#支付者-「assignment」" class="headerlink" title="支付者 「assignment」"></a>支付者 「assignment」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack role assignment list  --project  &#123;项目名&#125;  --name  # 查看用户的支付者<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="卷-「volume」"><a href="#卷-「volume」" class="headerlink" title="卷  「volume」"></a>卷  「volume」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack volume type list   # 查看卷类型<br>openstack volume set --state &#123;&#125;     # 改变云硬盘状态  <br>openstack volume backup list   # 查看云硬盘备份<br>openstack volume snapshot list --all --volume &#123; id/name &#125;<br><br>nova  volume-detach  &#123;云主机ID&#125; &#123;volume id&#125;     # 分离卷<br></code></pre></td></tr></table></figure>
+
+<p>Volume 除了可以用作 instance 的数据盘，也可以作为启动盘（Bootable Volume）创建Volume时，选择Volume Source为image，创建后可以看到该volume是Bootable的，后可根据需求创建可启动volume</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack volume create --image $IMAGE_ID --size $SIZE --type $TYPE --bootable $NAME<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="迁移-「migrate」"><a href="#迁移-「migrate」" class="headerlink" title="迁移  「migrate」"></a>迁移  「migrate」</h2><p>迁移的云主机若内存等资源使用率过高会导致热迁移实例写入内存页面的速度可能比复制它们的速度快<br>从而虚拟机产生了内存脏数据,无法完成迁移超时,虚拟机状态error</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">nova live-migration-force-complete 实例ID 迁移ID        # 强制迁移<br>nova server-migration-list 实例ID                  # 获取迁移的任务ID<br>nova live-migration-abort 实例ID 迁移ID                 # 取消迁移<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="负载均衡-「loadbalancer」"><a href="#负载均衡-「loadbalancer」" class="headerlink" title="负载均衡  「loadbalancer」"></a>负载均衡  「loadbalancer」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack loadbalancer list<br></code></pre></td></tr></table></figure>
+
+
+
+
+
+<p><a href="https://access.redhat.com/documentation/zh-cn/red_hat_openstack_platform/17.0/html/command_line_interface_reference/index">redhat官方openstack命令行文档</a></p>
+]]></content>
+      <categories>
+        <category>openstack</category>
+      </categories>
+      <tags>
+        <tag>openstack</tag>
+      </tags>
   </entry>
   <entry>
     <title>kolla部署openstack-Yoga</title>
@@ -384,55 +433,6 @@
       <tags>
         <tag>openstack</tag>
         <tag>kolla</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>openstack常用命令整理</title>
-    <url>/2023/06/21/openstack%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/</url>
-    <content><![CDATA[<h2 id="配额-「quota」"><a href="#配额-「quota」" class="headerlink" title="配额 「quota」"></a>配额 「quota」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack quota set --ram 1024 --instances 5 --cores 3 &#123;项目名&#125;     # 项目限制配额<br></code></pre></td></tr></table></figure>
-
-<h2 id="虚拟机-「server」"><a href="#虚拟机-「server」" class="headerlink" title="虚拟机 「server」"></a>虚拟机 「server」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack console url show &#123;虚拟机名字&#125;<br>openstack server delete &#123;虚拟机名字&#125;<br>openstack server force-delete &#123;虚拟机名字&#125;       # 强制删除虚机<br>openstack server list / show  <br>openstack server resize      # 调整云主机大小<br>openstack server event list --long &#123;虚拟机 id&#125;    # 查询云主机的事件<br></code></pre></td></tr></table></figure>
-
-<h2 id="搁置-「shelve」"><a href="#搁置-「shelve」" class="headerlink" title="搁置 「shelve」"></a>搁置 「shelve」</h2><p>对于一些长时间不使用的虚拟机，即使处于关机状态，仍然会占用着集群资源<br>如果需要释放这些资源,则使用shelve来操作,该操作会将server实例作为image保存到glance中,然后在宿主机中删除该server实例</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack server shelve &#123;虚机id&#125;  # 机器开启搁置状态 （搁置状态：--status SHELVED_OFFLOADED ）<br>openstack server unshelve     # 取消搁置的机器<br></code></pre></td></tr></table></figure>
-
-<h2 id="镜像-「image」"><a href="#镜像-「image」" class="headerlink" title="镜像 「image」"></a>镜像 「image」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">共享私有镜像给其他项目<br><br>openstack image set --shared &#123;镜像id&#125;    # 镜像设置为共享<br>openstack image add project  &#123;镜像id&#125;  &#123;目标项目id&#125; <br>openstack role add --user &#123;&#125;  project_member --project  &#123;目标项目id&#125; <br><br>export OS_PROJECT_NAME=&#123;目标项目名&#125;       # 切换项目<br>openstack image set --accept &#123;目标镜像id&#125; <br>export OS_PROJECT_NAME=&#123;&#125;<br>openstack role remove --user &#123;&#125; project_member --project &#123;目标项目id&#125;<br><br>openstack image member list &#123;目标镜像id&#125;     # 验证是否共享成功<br><br>openstack image set  # 更新镜像<br></code></pre></td></tr></table></figure>
-
-
-
-<h2 id="网络-「network」"><a href="#网络-「network」" class="headerlink" title="网络 「network」"></a>网络 「network」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack floating ip list <br><br>云主机添加无IP的网卡<br>openstack network list --project &#123;项目名&#125;    # 查看项目下网络<br><br>openstack port create  --network  &#123;网络id/name&#125;   &#123;端口名&#125;     在不指定IP地址的情况下创建一个端口<br><br>创建指定IP地址的端口<br>openstack port create --network net1 --fixed-ip subnet=subnet1,ip-address=192.0.2.40 &#123;端口名&#125;  <br><br>openstack port list <br>nova interface-attach --port-id  &#123;port id&#125;   &#123;server id&#125;   <br></code></pre></td></tr></table></figure>
-
-
-
-<h2 id="支付者-「assignment」"><a href="#支付者-「assignment」" class="headerlink" title="支付者 「assignment」"></a>支付者 「assignment」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack role assignment list  --project  &#123;项目名&#125;  --name  # 查看用户的支付者<br></code></pre></td></tr></table></figure>
-
-
-
-<h2 id="卷-「volume」"><a href="#卷-「volume」" class="headerlink" title="卷  「volume」"></a>卷  「volume」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack volume type list   # 查看卷类型<br>openstack volume set --state &#123;&#125;     # 改变云硬盘状态  <br>openstack volume backup list   # 查看云硬盘备份<br>openstack volume snapshot list --all --volume &#123; id/name &#125;<br><br>nova  volume-detach  &#123;云主机ID&#125; &#123;volume id&#125;     # 分离卷<br></code></pre></td></tr></table></figure>
-
-<p>Volume 除了可以用作 instance 的数据盘，也可以作为启动盘（Bootable Volume）创建Volume时，选择Volume Source为image，创建后可以看到该volume是Bootable的，后可根据需求创建可启动volume</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack volume create --image $IMAGE_ID --size $SIZE --type $TYPE --bootable $NAME<br></code></pre></td></tr></table></figure>
-
-
-
-<h2 id="迁移-「migrate」"><a href="#迁移-「migrate」" class="headerlink" title="迁移  「migrate」"></a>迁移  「migrate」</h2><p>迁移的云主机若内存等资源使用率过高会导致热迁移实例写入内存页面的速度可能比复制它们的速度快<br>从而虚拟机产生了内存脏数据,无法完成迁移超时,虚拟机状态error</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">nova live-migration-force-complete 实例ID 迁移ID        # 强制迁移<br>nova server-migration-list 实例ID                  # 获取迁移的任务ID<br>nova live-migration-abort 实例ID 迁移ID                 # 取消迁移<br></code></pre></td></tr></table></figure>
-
-
-
-<h2 id="负载均衡-「loadbalancer」"><a href="#负载均衡-「loadbalancer」" class="headerlink" title="负载均衡  「loadbalancer」"></a>负载均衡  「loadbalancer」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack loadbalancer list<br></code></pre></td></tr></table></figure>
-
-
-
-
-
-<p><a href="https://access.redhat.com/documentation/zh-cn/red_hat_openstack_platform/17.0/html/command_line_interface_reference/index">redhat官方openstack命令行文档</a></p>
-]]></content>
-      <categories>
-        <category>openstack</category>
-      </categories>
-      <tags>
-        <tag>openstack</tag>
       </tags>
   </entry>
   <entry>
