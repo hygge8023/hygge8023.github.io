@@ -1,6 +1,91 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>Ceph-ansible 安装ceph-pacific</title>
+    <url>/2023/06/28/Ceph-ansible%E9%83%A8%E7%BD%B2ceph/</url>
+    <content><![CDATA[<h2 id="安装环境："><a href="#安装环境：" class="headerlink" title="安装环境："></a>安装环境：</h2><table>
+<thead>
+<tr>
+<th>主机名</th>
+<th>os</th>
+<th>角色</th>
+<th>public_ip</th>
+<th>cluster_ip</th>
+<th>osd磁盘</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Ceph-1</td>
+<td>CentOS 8</td>
+<td>Mon,mgr,osd</td>
+<td>192.168.1.11</td>
+<td>192.168.2.10</td>
+<td>vdb/vdc</td>
+</tr>
+<tr>
+<td>Ceph-2</td>
+<td>CentOS 8</td>
+<td>Mon,mgr,osd</td>
+<td>192.168.1.14</td>
+<td>192.168.2.12</td>
+<td>vdb/vdc</td>
+</tr>
+<tr>
+<td>Ceph-2</td>
+<td>CentOS 8</td>
+<td>osd</td>
+<td>192.168.1.5</td>
+<td>192.168.2.8</td>
+<td>vdb/vdc</td>
+</tr>
+</tbody></table>
+<h2 id="1、修改主机名"><a href="#1、修改主机名" class="headerlink" title="1、修改主机名"></a>1、修改主机名</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">hostnamectl set-hostname ceph-1<br>hostnamectl set-hostname ceph-2<br>hostnamectl set-hostname ceph-3<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="2、修改-etc-hosts-文件"><a href="#2、修改-etc-hosts-文件" class="headerlink" title="2、修改 /etc/hosts 文件"></a>2、修改 /etc/hosts 文件</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">cat &gt;&gt;/etc/hosts&lt;&lt;EOF<br>192.168.1.11 ceph-1<br>192.168.1.14 ceph-2<br>192.168.1.5 ceph-3<br>EOF<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="3、节点免密"><a href="#3、节点免密" class="headerlink" title="3、节点免密"></a>3、节点免密</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">[root@ceph-1 ~]# ssh-keygen<br>Generating public/private rsa key pair.<br>Enter file in which to save the key (/root/.ssh/id_rsa): <br>Enter passphrase (empty for no passphrase): <br>Enter same passphrase again: <br>Your identification has been saved in /root/.ssh/id_rsa.<br>Your public key has been saved in /root/.ssh/id_rsa.pub.<br>The key fingerprint is:<br>SHA256:3Rwq/ejDgnugo4sur6AldSsfRQa1mMzI5EgHmEVwh/8 root@ceph-1<br>The key&#x27;s randomart image is:<br>+---[RSA 3072]----+<br>|oB*oo..          |<br>|+*o= + .         |<br>|. +.= +     .    |<br>|    .o   o + .   |<br>|  . ... S + o    |<br>| . . oE  . o     |<br>|o o o. o .. .    |<br>|++ oo.. o.o      |<br>|*++o...o ...     |<br>+----[SHA256]-----+<br>[root@ceph-1 ~]# ssh-copy-id 192.168.1.14<br>[root@ceph-1 ~]# ssh-copy-id 192.168.1.5<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="4、修改yum-源"><a href="#4、修改yum-源" class="headerlink" title="4、修改yum 源"></a>4、修改yum 源</h2><p>CentOS 8仓库已经于2022年关闭了,yum 源无法正常使用，否则安装会报错  “仓库 ‘appstream’ 下载元数据失败 : Cannot prepare internal mirrorlist:”</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">cd /etc/yum.repos.d/<br>mkdir bak<br>mv CentOS-Linux-* bak/<br>wget -O /etc/yum.repos.d/CentOS-Base.repo https://mirrors.aliyun.com/repo/Centos-vault-8.5.2111.repo<br>yum clean all<br>yum makecache<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="5、配置节点时间同步"><a href="#5、配置节点时间同步" class="headerlink" title="5、配置节点时间同步"></a>5、配置节点时间同步</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">dnf -y install chrony<br>systemctl start chronyd<br><br>[root@ceph-1 ~]# cat /etc/chrony.conf  |grep -v  &quot;^#&quot; |grep -v &quot;^$&quot;<br>pool 2.centos.pool.ntp.org iburst<br>server ntp.aliyun.com iburst<br>driftfile /var/lib/chrony/drift<br>makestep 1.0 3<br>rtcsync<br>allow 192.168.1.0/24<br>keyfile /etc/chrony.keys<br>leapsectz right/UTC<br>logdir /var/log/chrony<br><br>[root@ceph-2 .ssh]# cat /etc/chrony.conf  |grep -v  &quot;^#&quot; |grep -v &quot;^$&quot;<br>server  192.168.1.11  iburst<br>driftfile /var/lib/chrony/drift<br>makestep 1.0 3<br>rtcsync<br>keyfile /etc/chrony.keys<br>leapsectz right/UTC<br>logdir /var/log/chrony<br><br>节点3与节点2配置文件/etc/chrony.conf 内容一样<br></code></pre></td></tr></table></figure>
+
+<p>验证时间同步状态</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">chronyc sources -v<br></code></pre></td></tr></table></figure>
+
+<p><img src="/2023/06/28/Ceph-ansible%E9%83%A8%E7%BD%B2ceph/image-20230626165654294.png"></p>
+<h2 id="6、获取ceph-ansible部署包"><a href="#6、获取ceph-ansible部署包" class="headerlink" title="6、获取ceph-ansible部署包"></a>6、获取ceph-ansible部署包</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">wget https://github.com/ceph/ceph-ansible/archive/refs/heads/stable-6.0.zip -O ceph-ansible-stable-6.0.zip<br>unzip ceph-ansible-stable-6.0.zip<br>cd ceph-ansible-stable-6.0<br>pip install -r requirements.txt	 # 进行安装ansible和其它依赖<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="7、定义主机清单hosts文件"><a href="#7、定义主机清单hosts文件" class="headerlink" title="7、定义主机清单hosts文件"></a>7、定义主机清单hosts文件</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">cd ceph-ansible-stable-6.0/<br>vi hosts<br><br>[mons] <br>ceph-1<br>ceph-2<br><br>[mgrs]<br>ceph-1<br>ceph-2<br><br>[osds]<br>ceph-1<br>ceph-2<br>ceph-3<br><br>[monitoring]<br>ceph-1<br>ceph-2<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="8、配置ceph安装参数"><a href="#8、配置ceph安装参数" class="headerlink" title="8、配置ceph安装参数"></a>8、配置ceph安装参数</h2><p>安装参数详解见另一篇文章:<a href="/2023/06/21/ceph-ansible%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E8%AF%A6%E8%A7%A3/" title="ceph-ansible配置文件详解">ceph-ansible配置文件详解</a></p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">cd ceph-ansible-stable-6.0/group_vars/<br>mv all.yml.sample all.yml<br>mv osds.yml.sample osds.yml	<br><br>[root@ceph-1 group_vars]# cat all.yml <br>---<br>dummy:<br>mon_group_name: mons<br>osd_group_name: osds<br>mgr_group_name: mgrs<br>monitoring_group_name: monitoring<br>ceph_origin: repository<br>ceph_repository: community<br>ceph_mirror: https://mirrors.tuna.tsinghua.edu.cn/ceph/         # ceph安装源<br>ceph_stable_key: https://mirrors.tuna.tsinghua.edu.cn/ceph/keys/release.asc<br>ceph_stable_release: pacific    <br>monitor_interface: ens3   # ceph-mon节点服务监听网卡<br>monitor_address_block: 192.168.1.0/24   # ceph-mon节点服务监听地址所在网段<br>ip_version: ipv4<br>public_network: 192.168.1.0/24  # public-netework子网<br>cluster_network: 192.168.2.0/24 # cluster-network子网<br>osd_objectstore: bluestore              # osd使用的存储后端<br>dashboard_enabled: True         # 启用ceph-dashboard<br>dashboard_admin_user: admin     # ceph-dashboard用户名和密码<br>dashboard_admin_password: Admin@123<br>grafana_admin_user: admin       # grafana用户名和密码<br>grafana_admin_password: admin<br><br><br>[root@ceph-1 group_vars]# cat osds.yml <br>---<br>dummy:<br>devices:        # 每个节点上用作osd的磁盘<br>  - /dev/vdb<br>  - /dev/vdc<br>osd_auto_discovery: false       <br><br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="9、开始部署"><a href="#9、开始部署" class="headerlink" title="9、开始部署"></a>9、开始部署</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">cd ceph-ansible-stable-6.0/<br>ansible-playbook -i hosts site.yml.sample  -vv <br></code></pre></td></tr></table></figure>
+
+<p><img src="/2023/06/28/Ceph-ansible%E9%83%A8%E7%BD%B2ceph/image-20230628162633657.png"></p>
+<h2 id="10、验证集群状态"><a href="#10、验证集群状态" class="headerlink" title="10、验证集群状态"></a>10、验证集群状态</h2><p><img src="/2023/06/28/Ceph-ansible%E9%83%A8%E7%BD%B2ceph/image-20230628183209763.png"></p>
+]]></content>
+      <categories>
+        <category>ceph</category>
+        <category>ansible</category>
+      </categories>
+  </entry>
+  <entry>
     <title>Neutron-l3-agent</title>
     <url>/2023/06/21/Neutron-l3-agent/</url>
     <content><![CDATA[<p>Neutron 的路由服务是由 l3 agent 提供的。 除此之外，l3 agent 通过 iptables 提供 firewall 和 floating ip 服务</p>
@@ -114,55 +199,6 @@
       </categories>
   </entry>
   <entry>
-    <title>openstack常用命令整理</title>
-    <url>/2023/06/21/openstack%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/</url>
-    <content><![CDATA[<h2 id="配额-「quota」"><a href="#配额-「quota」" class="headerlink" title="配额 「quota」"></a>配额 「quota」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack quota set --ram 1024 --instances 5 --cores 3 &#123;项目名&#125;     # 项目限制配额<br></code></pre></td></tr></table></figure>
-
-<h2 id="虚拟机-「server」"><a href="#虚拟机-「server」" class="headerlink" title="虚拟机 「server」"></a>虚拟机 「server」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack console url show &#123;虚拟机名字&#125;<br>openstack server delete &#123;虚拟机名字&#125;<br>openstack server force-delete &#123;虚拟机名字&#125;       # 强制删除虚机<br>openstack server list / show  <br>openstack server resize      # 调整云主机大小<br>openstack server event list --long &#123;虚拟机 id&#125;    # 查询云主机的事件<br></code></pre></td></tr></table></figure>
-
-<h2 id="搁置-「shelve」"><a href="#搁置-「shelve」" class="headerlink" title="搁置 「shelve」"></a>搁置 「shelve」</h2><p>对于一些长时间不使用的虚拟机，即使处于关机状态，仍然会占用着集群资源<br>如果需要释放这些资源,则使用shelve来操作,该操作会将server实例作为image保存到glance中,然后在宿主机中删除该server实例</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack server shelve &#123;虚机id&#125;  # 机器开启搁置状态 （搁置状态：--status SHELVED_OFFLOADED ）<br>openstack server unshelve     # 取消搁置的机器<br></code></pre></td></tr></table></figure>
-
-<h2 id="镜像-「image」"><a href="#镜像-「image」" class="headerlink" title="镜像 「image」"></a>镜像 「image」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">共享私有镜像给其他项目<br><br>openstack image set --shared &#123;镜像id&#125;    # 镜像设置为共享<br>openstack image add project  &#123;镜像id&#125;  &#123;目标项目id&#125; <br>openstack role add --user &#123;&#125;  project_member --project  &#123;目标项目id&#125; <br><br>export OS_PROJECT_NAME=&#123;目标项目名&#125;       # 切换项目<br>openstack image set --accept &#123;目标镜像id&#125; <br>export OS_PROJECT_NAME=&#123;&#125;<br>openstack role remove --user &#123;&#125; project_member --project &#123;目标项目id&#125;<br><br>openstack image member list &#123;目标镜像id&#125;     # 验证是否共享成功<br><br>openstack image set  # 更新镜像<br></code></pre></td></tr></table></figure>
-
-
-
-<h2 id="网络-「network」"><a href="#网络-「network」" class="headerlink" title="网络 「network」"></a>网络 「network」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack floating ip list <br><br>云主机添加无IP的网卡<br>openstack network list --project &#123;项目名&#125;    # 查看项目下网络<br><br>openstack port create  --network  &#123;网络id/name&#125;   &#123;端口名&#125;     在不指定IP地址的情况下创建一个端口<br><br>创建指定IP地址的端口<br>openstack port create --network net1 --fixed-ip subnet=subnet1,ip-address=192.0.2.40 &#123;端口名&#125;  <br><br>openstack port list <br>nova interface-attach --port-id  &#123;port id&#125;   &#123;server id&#125;   <br></code></pre></td></tr></table></figure>
-
-
-
-<h2 id="支付者-「assignment」"><a href="#支付者-「assignment」" class="headerlink" title="支付者 「assignment」"></a>支付者 「assignment」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack role assignment list  --project  &#123;项目名&#125;  --name  # 查看用户的支付者<br></code></pre></td></tr></table></figure>
-
-
-
-<h2 id="卷-「volume」"><a href="#卷-「volume」" class="headerlink" title="卷  「volume」"></a>卷  「volume」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack volume type list   # 查看卷类型<br>openstack volume set --state &#123;&#125;     # 改变云硬盘状态  <br>openstack volume backup list   # 查看云硬盘备份<br>openstack volume snapshot list --all --volume &#123; id/name &#125;<br><br>nova  volume-detach  &#123;云主机ID&#125; &#123;volume id&#125;     # 分离卷<br></code></pre></td></tr></table></figure>
-
-<p>Volume 除了可以用作 instance 的数据盘，也可以作为启动盘（Bootable Volume）创建Volume时，选择Volume Source为image，创建后可以看到该volume是Bootable的，后可根据需求创建可启动volume</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack volume create --image $IMAGE_ID --size $SIZE --type $TYPE --bootable $NAME<br></code></pre></td></tr></table></figure>
-
-
-
-<h2 id="迁移-「migrate」"><a href="#迁移-「migrate」" class="headerlink" title="迁移  「migrate」"></a>迁移  「migrate」</h2><p>迁移的云主机若内存等资源使用率过高会导致热迁移实例写入内存页面的速度可能比复制它们的速度快<br>从而虚拟机产生了内存脏数据,无法完成迁移超时,虚拟机状态error</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">nova live-migration-force-complete 实例ID 迁移ID        # 强制迁移<br>nova server-migration-list 实例ID                  # 获取迁移的任务ID<br>nova live-migration-abort 实例ID 迁移ID                 # 取消迁移<br></code></pre></td></tr></table></figure>
-
-
-
-<h2 id="负载均衡-「loadbalancer」"><a href="#负载均衡-「loadbalancer」" class="headerlink" title="负载均衡  「loadbalancer」"></a>负载均衡  「loadbalancer」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack loadbalancer list<br></code></pre></td></tr></table></figure>
-
-
-
-
-
-<p><a href="https://access.redhat.com/documentation/zh-cn/red_hat_openstack_platform/17.0/html/command_line_interface_reference/index">redhat官方openstack命令行文档</a></p>
-]]></content>
-      <categories>
-        <category>openstack</category>
-      </categories>
-      <tags>
-        <tag>openstack</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>kolla-ansible 部署 openstack—train</title>
     <url>/2023/06/21/kolla%E9%83%A8%E7%BD%B2openstack-Train/</url>
     <content><![CDATA[<h1 id="环境介绍"><a href="#环境介绍" class="headerlink" title="环境介绍"></a>环境介绍</h1><p>系统：centos7<br>三台云主机</p>
@@ -239,110 +275,6 @@
       <tags>
         <tag>openstack</tag>
         <tag>kolla</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Ceph-ansible 安装ceph-pacific</title>
-    <url>/2023/06/28/Ceph-ansible%E9%83%A8%E7%BD%B2ceph/</url>
-    <content><![CDATA[<h2 id="安装环境："><a href="#安装环境：" class="headerlink" title="安装环境："></a>安装环境：</h2><table>
-<thead>
-<tr>
-<th>主机名</th>
-<th>os</th>
-<th>角色</th>
-<th>public_ip</th>
-<th>cluster_ip</th>
-<th>osd磁盘</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Ceph-1</td>
-<td>CentOS 8</td>
-<td>Mon,mgr,osd</td>
-<td>192.168.1.11</td>
-<td>192.168.2.10</td>
-<td>vdb/vdc</td>
-</tr>
-<tr>
-<td>Ceph-2</td>
-<td>CentOS 8</td>
-<td>Mon,mgr,osd</td>
-<td>192.168.1.14</td>
-<td>192.168.2.12</td>
-<td>vdb/vdc</td>
-</tr>
-<tr>
-<td>Ceph-2</td>
-<td>CentOS 8</td>
-<td>osd</td>
-<td>192.168.1.5</td>
-<td>192.168.2.8</td>
-<td>vdb/vdc</td>
-</tr>
-</tbody></table>
-<h2 id="1、修改主机名"><a href="#1、修改主机名" class="headerlink" title="1、修改主机名"></a>1、修改主机名</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">hostnamectl set-hostname ceph-1<br>hostnamectl set-hostname ceph-2<br>hostnamectl set-hostname ceph-3<br></code></pre></td></tr></table></figure>
-
-
-
-<h2 id="2、修改-etc-hosts-文件"><a href="#2、修改-etc-hosts-文件" class="headerlink" title="2、修改 /etc/hosts 文件"></a>2、修改 /etc/hosts 文件</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">cat &gt;&gt;/etc/hosts&lt;&lt;EOF<br>192.168.1.11 ceph-1<br>192.168.1.14 ceph-2<br>192.168.1.5 ceph-3<br>EOF<br></code></pre></td></tr></table></figure>
-
-
-
-<h2 id="3、节点免密"><a href="#3、节点免密" class="headerlink" title="3、节点免密"></a>3、节点免密</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">[root@ceph-1 ~]# ssh-keygen<br>Generating public/private rsa key pair.<br>Enter file in which to save the key (/root/.ssh/id_rsa): <br>Enter passphrase (empty for no passphrase): <br>Enter same passphrase again: <br>Your identification has been saved in /root/.ssh/id_rsa.<br>Your public key has been saved in /root/.ssh/id_rsa.pub.<br>The key fingerprint is:<br>SHA256:3Rwq/ejDgnugo4sur6AldSsfRQa1mMzI5EgHmEVwh/8 root@ceph-1<br>The key&#x27;s randomart image is:<br>+---[RSA 3072]----+<br>|oB*oo..          |<br>|+*o= + .         |<br>|. +.= +     .    |<br>|    .o   o + .   |<br>|  . ... S + o    |<br>| . . oE  . o     |<br>|o o o. o .. .    |<br>|++ oo.. o.o      |<br>|*++o...o ...     |<br>+----[SHA256]-----+<br>[root@ceph-1 ~]# ssh-copy-id 192.168.1.14<br>[root@ceph-1 ~]# ssh-copy-id 192.168.1.5<br></code></pre></td></tr></table></figure>
-
-
-
-<h2 id="4、修改yum-源"><a href="#4、修改yum-源" class="headerlink" title="4、修改yum 源"></a>4、修改yum 源</h2><p>CentOS 8仓库已经于2022年关闭了,yum 源无法正常使用，否则安装会报错  “仓库 ‘appstream’ 下载元数据失败 : Cannot prepare internal mirrorlist:”</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">cd /etc/yum.repos.d/<br>mkdir bak<br>mv CentOS-Linux-* bak/<br>wget -O /etc/yum.repos.d/CentOS-Base.repo https://mirrors.aliyun.com/repo/Centos-vault-8.5.2111.repo<br>yum clean all<br>yum makecache<br></code></pre></td></tr></table></figure>
-
-
-
-<h2 id="5、配置节点时间同步"><a href="#5、配置节点时间同步" class="headerlink" title="5、配置节点时间同步"></a>5、配置节点时间同步</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">dnf -y install chrony<br>systemctl start chronyd<br><br>[root@ceph-1 ~]# cat /etc/chrony.conf  |grep -v  &quot;^#&quot; |grep -v &quot;^$&quot;<br>pool 2.centos.pool.ntp.org iburst<br>server ntp.aliyun.com iburst<br>driftfile /var/lib/chrony/drift<br>makestep 1.0 3<br>rtcsync<br>allow 192.168.1.0/24<br>keyfile /etc/chrony.keys<br>leapsectz right/UTC<br>logdir /var/log/chrony<br><br>[root@ceph-2 .ssh]# cat /etc/chrony.conf  |grep -v  &quot;^#&quot; |grep -v &quot;^$&quot;<br>server  192.168.1.11  iburst<br>driftfile /var/lib/chrony/drift<br>makestep 1.0 3<br>rtcsync<br>keyfile /etc/chrony.keys<br>leapsectz right/UTC<br>logdir /var/log/chrony<br><br>节点3与节点2配置文件/etc/chrony.conf 内容一样<br></code></pre></td></tr></table></figure>
-
-<p>验证时间同步状态</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">chronyc sources -v<br></code></pre></td></tr></table></figure>
-
-<p><img src="/2023/06/28/Ceph-ansible%E9%83%A8%E7%BD%B2ceph/image-20230626165654294.png"></p>
-<h2 id="6、获取ceph-ansible部署包"><a href="#6、获取ceph-ansible部署包" class="headerlink" title="6、获取ceph-ansible部署包"></a>6、获取ceph-ansible部署包</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">wget https://github.com/ceph/ceph-ansible/archive/refs/heads/stable-6.0.zip -O ceph-ansible-stable-6.0.zip<br>unzip ceph-ansible-stable-6.0.zip<br>cd ceph-ansible-stable-6.0<br>pip install -r requirements.txt	 # 进行安装ansible和其它依赖<br></code></pre></td></tr></table></figure>
-
-
-
-<h2 id="7、定义主机清单hosts文件"><a href="#7、定义主机清单hosts文件" class="headerlink" title="7、定义主机清单hosts文件"></a>7、定义主机清单hosts文件</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">cd ceph-ansible-stable-6.0/<br>vi hosts<br><br>[mons] <br>ceph-1<br>ceph-2<br><br>[mgrs]<br>ceph-1<br>ceph-2<br><br>[osds]<br>ceph-1<br>ceph-2<br>ceph-3<br><br>[monitoring]<br>ceph-1<br>ceph-2<br></code></pre></td></tr></table></figure>
-
-
-
-<h2 id="8、配置ceph安装参数"><a href="#8、配置ceph安装参数" class="headerlink" title="8、配置ceph安装参数"></a>8、配置ceph安装参数</h2><p>安装参数详解见另一篇文章:<a href="/2023/06/21/ceph-ansible%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E8%AF%A6%E8%A7%A3/" title="ceph-ansible配置文件详解">ceph-ansible配置文件详解</a></p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">cd ceph-ansible-stable-6.0/group_vars/<br>mv all.yml.sample all.yml<br>mv osds.yml.sample osds.yml	<br><br>[root@ceph-1 group_vars]# cat all.yml <br>---<br>dummy:<br>mon_group_name: mons<br>osd_group_name: osds<br>mgr_group_name: mgrs<br>monitoring_group_name: monitoring<br>ceph_origin: repository<br>ceph_repository: community<br>ceph_mirror: https://mirrors.tuna.tsinghua.edu.cn/ceph/         # ceph安装源<br>ceph_stable_key: https://mirrors.tuna.tsinghua.edu.cn/ceph/keys/release.asc<br>ceph_stable_release: pacific    <br>monitor_interface: ens3   # ceph-mon节点服务监听网卡<br>monitor_address_block: 192.168.1.0/24   # ceph-mon节点服务监听地址所在网段<br>ip_version: ipv4<br>public_network: 192.168.1.0/24  # public-netework子网<br>cluster_network: 192.168.2.0/24 # cluster-network子网<br>osd_objectstore: bluestore              # osd使用的存储后端<br>dashboard_enabled: True         # 启用ceph-dashboard<br>dashboard_admin_user: admin     # ceph-dashboard用户名和密码<br>dashboard_admin_password: Admin@123<br>grafana_admin_user: admin       # grafana用户名和密码<br>grafana_admin_password: admin<br><br><br>[root@ceph-1 group_vars]# cat osds.yml <br>---<br>dummy:<br>devices:        # 每个节点上用作osd的磁盘<br>  - /dev/vdb<br>  - /dev/vdc<br>osd_auto_discovery: false       <br><br></code></pre></td></tr></table></figure>
-
-
-
-<h2 id="9、开始部署"><a href="#9、开始部署" class="headerlink" title="9、开始部署"></a>9、开始部署</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">cd ceph-ansible-stable-6.0/<br>ansible-playbook -i hosts site.yml.sample  -vv <br></code></pre></td></tr></table></figure>
-
-<p><img src="/2023/06/28/Ceph-ansible%E9%83%A8%E7%BD%B2ceph/image-20230628162633657.png"></p>
-<h2 id="10、验证集群状态"><a href="#10、验证集群状态" class="headerlink" title="10、验证集群状态"></a>10、验证集群状态</h2><p><img src="/2023/06/28/Ceph-ansible%E9%83%A8%E7%BD%B2ceph/image-20230628183209763.png"></p>
-]]></content>
-      <categories>
-        <category>ceph</category>
-        <category>ansible</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>删除网卡自动分配的fix ip</title>
-    <url>/2023/05/24/%E5%88%A0%E9%99%A4%E7%BD%91%E5%8D%A1%E8%87%AA%E5%8A%A8%E5%88%86%E9%85%8D%E7%9A%84fix-ip/</url>
-    <content><![CDATA[<p>当我们想要给云主机添加第二块无 IP 的网卡时，需要云主机挂载上新的网卡接口，但是在挂载接口时，时常会dhcp自动的分配一个ip地址，此时我们需要给他删除掉分配的地址，让他成为一个没有IP地址的网卡</p>
-<p>找出目标云主机的 port 列表（此处我需要移除 IP的是 192.168.2.6 ）</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack port list --server  1317ada5-231c-417f-9cc8-b6867591457e<br></code></pre></td></tr></table></figure>
-
-<p><img src="/2023/05/24/%E5%88%A0%E9%99%A4%E7%BD%91%E5%8D%A1%E8%87%AA%E5%8A%A8%E5%88%86%E9%85%8D%E7%9A%84fix-ip/1.jpg"></p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack  server  remove port $server_id  $port_id<br>openstack port set $port_id   --no-fixed-ip<br>openstack  server  add port $server_id  $port_id<br>openstack port list --server  41350a43-bd76-45fc-92ff-283e01c124fa<br></code></pre></td></tr></table></figure>
-
-<p><img src="/2023/05/24/%E5%88%A0%E9%99%A4%E7%BD%91%E5%8D%A1%E8%87%AA%E5%8A%A8%E5%88%86%E9%85%8D%E7%9A%84fix-ip/2.jpg"></p>
-]]></content>
-      <categories>
-        <category>openstack</category>
-      </categories>
-      <tags>
-        <tag>openstack</tag>
       </tags>
   </entry>
   <entry>
@@ -452,6 +384,74 @@
       <tags>
         <tag>openstack</tag>
         <tag>kolla</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>删除网卡自动分配的fix ip</title>
+    <url>/2023/05/24/%E5%88%A0%E9%99%A4%E7%BD%91%E5%8D%A1%E8%87%AA%E5%8A%A8%E5%88%86%E9%85%8D%E7%9A%84fix-ip/</url>
+    <content><![CDATA[<p>当我们想要给云主机添加第二块无 IP 的网卡时，需要云主机挂载上新的网卡接口，但是在挂载接口时，时常会dhcp自动的分配一个ip地址，此时我们需要给他删除掉分配的地址，让他成为一个没有IP地址的网卡</p>
+<p>找出目标云主机的 port 列表（此处我需要移除 IP的是 192.168.2.6 ）</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack port list --server  1317ada5-231c-417f-9cc8-b6867591457e<br></code></pre></td></tr></table></figure>
+
+<p><img src="/2023/05/24/%E5%88%A0%E9%99%A4%E7%BD%91%E5%8D%A1%E8%87%AA%E5%8A%A8%E5%88%86%E9%85%8D%E7%9A%84fix-ip/1.jpg"></p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack  server  remove port $server_id  $port_id<br>openstack port set $port_id   --no-fixed-ip<br>openstack  server  add port $server_id  $port_id<br>openstack port list --server  41350a43-bd76-45fc-92ff-283e01c124fa<br></code></pre></td></tr></table></figure>
+
+<p><img src="/2023/05/24/%E5%88%A0%E9%99%A4%E7%BD%91%E5%8D%A1%E8%87%AA%E5%8A%A8%E5%88%86%E9%85%8D%E7%9A%84fix-ip/2.jpg"></p>
+]]></content>
+      <categories>
+        <category>openstack</category>
+      </categories>
+      <tags>
+        <tag>openstack</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>openstack常用命令整理</title>
+    <url>/2023/06/21/openstack%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/</url>
+    <content><![CDATA[<h2 id="配额-「quota」"><a href="#配额-「quota」" class="headerlink" title="配额 「quota」"></a>配额 「quota」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack quota set --ram 1024 --instances 5 --cores 3 &#123;项目名&#125;     # 项目限制配额<br></code></pre></td></tr></table></figure>
+
+<h2 id="虚拟机-「server」"><a href="#虚拟机-「server」" class="headerlink" title="虚拟机 「server」"></a>虚拟机 「server」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack console url show &#123;虚拟机名字&#125;<br>openstack server delete &#123;虚拟机名字&#125;<br>openstack server force-delete &#123;虚拟机名字&#125;       # 强制删除虚机<br>openstack server list / show  <br>openstack server resize      # 调整云主机大小<br>openstack server event list --long &#123;虚拟机 id&#125;    # 查询云主机的事件<br></code></pre></td></tr></table></figure>
+
+<h2 id="搁置-「shelve」"><a href="#搁置-「shelve」" class="headerlink" title="搁置 「shelve」"></a>搁置 「shelve」</h2><p>对于一些长时间不使用的虚拟机，即使处于关机状态，仍然会占用着集群资源<br>如果需要释放这些资源,则使用shelve来操作,该操作会将server实例作为image保存到glance中,然后在宿主机中删除该server实例</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack server shelve &#123;虚机id&#125;  # 机器开启搁置状态 （搁置状态：--status SHELVED_OFFLOADED ）<br>openstack server unshelve     # 取消搁置的机器<br></code></pre></td></tr></table></figure>
+
+<h2 id="镜像-「image」"><a href="#镜像-「image」" class="headerlink" title="镜像 「image」"></a>镜像 「image」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">共享私有镜像给其他项目<br><br>openstack image set --shared &#123;镜像id&#125;    # 镜像设置为共享<br>openstack image add project  &#123;镜像id&#125;  &#123;目标项目id&#125; <br>openstack role add --user &#123;&#125;  project_member --project  &#123;目标项目id&#125; <br><br>export OS_PROJECT_NAME=&#123;目标项目名&#125;       # 切换项目<br>openstack image set --accept &#123;目标镜像id&#125; <br>export OS_PROJECT_NAME=&#123;&#125;<br>openstack role remove --user &#123;&#125; project_member --project &#123;目标项目id&#125;<br><br>openstack image member list &#123;目标镜像id&#125;     # 验证是否共享成功<br><br>openstack image set  # 更新镜像<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="网络-「network」"><a href="#网络-「network」" class="headerlink" title="网络 「network」"></a>网络 「network」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack floating ip list <br><br>云主机添加无IP的网卡<br>openstack network list --project &#123;项目名&#125;    # 查看项目下网络<br><br>openstack port create  --network  &#123;网络id/name&#125;   &#123;端口名&#125;     在不指定IP地址的情况下创建一个端口<br><br>创建指定IP地址的端口<br>openstack port create --network net1 --fixed-ip subnet=subnet1,ip-address=192.0.2.40 &#123;端口名&#125;  <br><br>openstack port list <br>nova interface-attach --port-id  &#123;port id&#125;   &#123;server id&#125;   <br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="支付者-「assignment」"><a href="#支付者-「assignment」" class="headerlink" title="支付者 「assignment」"></a>支付者 「assignment」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack role assignment list  --project  &#123;项目名&#125;  --name  # 查看用户的支付者<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="卷-「volume」"><a href="#卷-「volume」" class="headerlink" title="卷  「volume」"></a>卷  「volume」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack volume type list   # 查看卷类型<br>openstack volume set --state &#123;&#125;     # 改变云硬盘状态  <br>openstack volume backup list   # 查看云硬盘备份<br>openstack volume snapshot list --all --volume &#123; id/name &#125;<br><br>nova  volume-detach  &#123;云主机ID&#125; &#123;volume id&#125;     # 分离卷<br></code></pre></td></tr></table></figure>
+
+<p>Volume 除了可以用作 instance 的数据盘，也可以作为启动盘（Bootable Volume）创建Volume时，选择Volume Source为image，创建后可以看到该volume是Bootable的，后可根据需求创建可启动volume</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack volume create --image $IMAGE_ID --size $SIZE --type $TYPE --bootable $NAME<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="迁移-「migrate」"><a href="#迁移-「migrate」" class="headerlink" title="迁移  「migrate」"></a>迁移  「migrate」</h2><p>迁移的云主机若内存等资源使用率过高会导致热迁移实例写入内存页面的速度可能比复制它们的速度快<br>从而虚拟机产生了内存脏数据,无法完成迁移超时,虚拟机状态error</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">nova live-migration-force-complete 实例ID 迁移ID        # 强制迁移<br>nova server-migration-list 实例ID                  # 获取迁移的任务ID<br>nova live-migration-abort 实例ID 迁移ID                 # 取消迁移<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="负载均衡-「loadbalancer」"><a href="#负载均衡-「loadbalancer」" class="headerlink" title="负载均衡  「loadbalancer」"></a>负载均衡  「loadbalancer」</h2><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack loadbalancer list<br></code></pre></td></tr></table></figure>
+
+
+
+
+
+<p><a href="https://access.redhat.com/documentation/zh-cn/red_hat_openstack_platform/17.0/html/command_line_interface_reference/index">redhat官方openstack命令行文档</a></p>
+]]></content>
+      <categories>
+        <category>openstack</category>
+      </categories>
+      <tags>
+        <tag>openstack</tag>
       </tags>
   </entry>
 </search>
