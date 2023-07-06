@@ -102,25 +102,6 @@
       </tags>
   </entry>
   <entry>
-    <title>OpenStack Neutron trunk ports</title>
-    <url>/2023/06/21/Neutron-trunk%20ports/</url>
-    <content><![CDATA[<p>​     OpenStack Neutron trunk ports （VLAN-aware-VMs）,”VLAN aware VMs”有时也叫做”VM trunk ports”, 主要是让虚拟机收发的vlan tagged报文, 能够被虚拟网络所识别和处理。</p>
-<p>什么是主机的Trunk port？一般来说VLAN只是对交换机可知，主机不感知VLAN，也就是主机网卡发送出来的数据是不带VLAN Tag的。当主机将网卡配置成Trunk port，会在主机的Trunk port上添加多个带有不同VLAN ID的子网卡。通过子网卡发送的数据，会打上VLAN Tag，被发送出去。由于主机发送的网络数据有了变化（带上了VLAN Tag），对主机连接的网络提出了新的要求。另一方面，由于带了不同的VLAN Tag，子网卡可以认为连接在VLAN Tag标识的网络中。这样，不用实际增减主机的网卡，只需要为主机创建带VLAN ID的子网卡，就可以将主机添加到新的VLAN网络中。</p>
-<p>​     OpenStack对VLAN Trunk的支持就是指对OpenStack所管理的虚机的Trunk port，提供网络支持。大多数场景下，主机收发的是不带tag的报文，但是在实际环境中，无论是windows还是Linux环境都通过各自的方法可以收发带有vlan tag的报文。 而一个虚机要想接收不同vlan tag的报文，就需要在虚机上接入不同网络，即在虚机上配置不同网络的虚拟网卡。在NFV（Network Function Virtualization）场景下，若网络数量巨大，网卡数量也巨大，这种实现的方法就不现实；另一方面，连接的多个网络也是动态增减的，如果每次都增减网卡明显也是不方便的。如果使用Trunk port，当需要动态连接多个网络时，只需要动态的创建/删除相应的子网卡即可</p>
-<p>​      OpenStack中虚机的 Trunk port 设置步骤如下：</p>
-<ul>
-<li>需要在网络节点的neutron.conf里配置service_plugins为: “trunk”</li>
-<li>创建网络，如 net0(parent-net), net1,net2等，租户需要几个vlan网络，就需要创建几个对应net</li>
-<li>创建 parentport 端口，一个vm对应一个parentport</li>
-<li>创建 trunk，每一个trunk实例中包含一个parentport, 和若干个其他子接口netport</li>
-<li>创建 vm，指定parentport；在vm内创建子接口接口，并获取 dhcp 地址</li>
-</ul>
-]]></content>
-      <categories>
-        <category>openstack</category>
-      </categories>
-  </entry>
-  <entry>
     <title>ceph-ansible配置文件详解</title>
     <url>/2023/06/21/ceph-ansible%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E8%AF%A6%E8%A7%A3/</url>
     <content><![CDATA[<blockquote>
@@ -178,6 +159,91 @@
         <tag>ceph</tag>
         <tag>ceph-ansible</tag>
       </tags>
+  </entry>
+  <entry>
+    <title>Ceph常用命令整理</title>
+    <url>/2023/07/04/ceph%E6%97%A5%E5%B8%B8%E8%BF%90%E7%BB%B4%E5%91%BD%E4%BB%A4/</url>
+    <content><![CDATA[<h3 id="1、检查ceph集群健康状态"><a href="#1、检查ceph集群健康状态" class="headerlink" title="1、检查ceph集群健康状态"></a>1、检查ceph集群健康状态</h3><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">ceph -s  <br>ceph status<br>ceph health<br>ceph health detail<br>ceph -w      #  实时观察集群健康状态<br></code></pre></td></tr></table></figure>
+
+
+
+<h3 id="2、重启相关服务"><a href="#2、重启相关服务" class="headerlink" title="2、重启相关服务"></a>2、重启相关服务</h3><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">1. 重启osd dameon守护进程  在 Ceph OSD 节点上：<br>systemctl restart ceph-osd@OSD_NUMBER      # OSD_NUMBER：为 Ceph OSD 的 ID 数。<br><br></code></pre></td></tr></table></figure>
+
+
+
+<h3 id="3、检查ceph集群的使用情况"><a href="#3、检查ceph集群的使用情况" class="headerlink" title="3、检查ceph集群的使用情况"></a>3、检查ceph集群的使用情况</h3><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">ceph df<br><br>GLOBAL:<br>    SIZE      AVAIL     RAW USED     %RAW USED <br>    2T         1T        0.5T         20%<br>POOLS:<br>    NA       ID     USED       %USED     MAX AVAIL     OBJECTS    <br>    pool-1    1      1487T      82.73         103T      5485677010 <br>    pool-2    6      96333G     94.05         2029G      586512286 <br>    <br><span class="hljs-meta prompt_"> # </span><span class="language-bash">参数说明：</span><br> GLOBAL段<br>	SIZE:集群的总容量<br>	AVAIL:集群的空间空间总量      <br>	RAW USED:已用存储空间总量     <br><span class="hljs-meta prompt_">	%</span><span class="language-bash">RAW USED:已用存储空间比率</span><br>	<br>POOLS段<br>	NAME:存储池名字                   <br>	ID:存储池唯一标识符     <br>	USED:大概数据量,单位为B、KB、MB或GB        <br><span class="hljs-meta prompt_">	%</span><span class="language-bash">USED:各个存储池的大概使用率</span>     <br>	MAX AVAIL:各个存储池的最大利用率    <br>	OBJECTS:各存储池内的大概对象数 <br></code></pre></td></tr></table></figure>
+
+
+
+<h3 id="4、osd-相关检查"><a href="#4、osd-相关检查" class="headerlink" title="4、osd 相关检查"></a>4、osd 相关检查</h3><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">1. 查看osd状态<br>ceph osd stat<br><br>2. 查看osd树<br>ceph osd tree  <br><br>3. 定位OSD所在物理节点<br>ceph osd find 3<br><br>4. 把osd逐出集群<br>ceph osd out 3<br><br>5.把逐出的osd加入集群<br>ceph osd in 3<br><br>6. 暂停OSD<br>ceph osd pause    # 暂停后整个集群不再接受数据<br><br>7. 开启OSD<br>ceph osd unpause  # 开启后再次接收数据<br><br>8. 查看池中对象所在osd<br>ceph osd map $&#123;poolname&#125; $&#123;objname&#125;<br></code></pre></td></tr></table></figure>
+
+
+
+<h4 id="4-1、osd中disk盘损坏剔除"><a href="#4-1、osd中disk盘损坏剔除" class="headerlink" title="4.1、osd中disk盘损坏剔除"></a>4.1、osd中disk盘损坏剔除</h4><p>我使用的是lvm(逻辑卷)这样的形式创建的数据盘(disk)，模拟down掉一个osd daemon数据盘</p>
+<p>此处模拟 osd.3 坏盘</p>
+<p><img src="/2023/07/04/ceph%E6%97%A5%E5%B8%B8%E8%BF%90%E7%BB%B4%E5%91%BD%E4%BB%A4/image-20230703150914011.png"></p>
+<ul>
+<li>关闭 osd 守护进程（<em>如果osd dameon正常运行,down的osd很快会自行恢复正常,所以需要先关闭是守护进程</em>）</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">systemctl stop ceph-osd@3<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>down掉osd</li>
+</ul>
+<figure class="highlight apache"><table><tr><td class="code"><pre><code class="hljs apache"><span class="hljs-attribute">ceph</span> osd down <span class="hljs-number">3</span><br></code></pre></td></tr></table></figure>
+
+
+
+<p>集群中坏掉一块盘后，我们需要将其踢出集群，让集群恢复到active+clean状态</p>
+<figure class="highlight apache"><table><tr><td class="code"><pre><code class="hljs apache"><span class="hljs-attribute">1</span>. 将osd.<span class="hljs-number">3</span>移出集群,集群会自动同步数据<br><span class="hljs-attribute">ceph</span> osd out osd.<span class="hljs-number">3</span><br><br><span class="hljs-attribute">2</span>. 将osd.<span class="hljs-number">3</span>移除crushmap<br><span class="hljs-attribute">ceph</span> osd crush rm  osd.<span class="hljs-number">3</span><br><br><span class="hljs-attribute">3</span>. 删除守护进程对应的账户信息<br><span class="hljs-attribute">ceph</span> auth rm osd.<span class="hljs-number">3</span><br><br></code></pre></td></tr></table></figure>
+
+<p>此时我们查看 osd 状态，osd.3处于 down的状态，且reweight值为0</p>
+<p><img src="/2023/07/04/ceph%E6%97%A5%E5%B8%B8%E8%BF%90%E7%BB%B4%E5%91%BD%E4%BB%A4/image-20230703152020331.png"></p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">1. 删除osd.3<br>ceph osd rm osd.3<br><br>2. 查看osd集群中osd.3的状态<br>ceph osd tree			<br><span class="hljs-meta prompt_"># </span><span class="language-bash">此时osd.3是被移除的状态,我们是看不到osd.3的状态信息的</span><br></code></pre></td></tr></table></figure>
+
+
+
+<p><img src="/2023/07/04/ceph%E6%97%A5%E5%B8%B8%E8%BF%90%E7%BB%B4%E5%91%BD%E4%BB%A4/image-20230704110551472.png"></p>
+<h3 id="5、pool-池相关操作"><a href="#5、pool-池相关操作" class="headerlink" title="5、pool 池相关操作"></a>5、pool 池相关操作</h3><figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">1. 查看集群 pool<br> ceph osd pool ls<br> ceph osd dump | grep -i pool   # 这个看的更详细<br> <br>2. 创建 pool<br><span class="hljs-meta prompt_"># </span><span class="language-bash">注：这里强制选择pg_num和pgp_num，因为ceph集群不能自动计算pg数量。</span><br>ceph osd create pool $&#123;poolname&#125; $&#123;pg_num&#125; $&#123;pgp_num&#125;  <br><br>3. 删除 pool<br><span class="hljs-meta prompt_"># </span><span class="language-bash">注：这里防止误删，需要输入两次池名，必须使用参数--yes-i-really-really-mean-it</span><br>ceph osd pool delete $&#123;poolname&#125; $&#123;poolname&#125; --yes-i-really-really-mean-it<br><br>4. 重命名 pool<br>ceph osd pool rename $&#123;pool-oldname&#125; $&#123;new-poolname&#125;<br><br>5. 修改 pool 的副本数<br>ceph osd pool set $&#123;poolname&#125; size $&#123;num&#125;<br><br>   设置 degrade 最小副本数<br>ceph osd pool set $&#123;poolname&#125; min_size $&#123;num&#125;<br><br>6. 修改 pool 的pg_num，pgp_num<br><span class="hljs-meta prompt_"># </span><span class="language-bash">注：pg_num=pgp_num，当且仅当修改完pgp_num之后，pool中pg才会有remap，backfill等操作</span><br>ceph osd pool set $&#123;poolname&#125; pg_num $&#123;pg_num&#125;<br><br>ceph osd pool set $&#123;poolname&#125; pgp_num $&#123;pgp_num&#125;<br><br></code></pre></td></tr></table></figure>
+
+
+
+<h3 id="6、rados-相关命令"><a href="#6、rados-相关命令" class="headerlink" title="6、rados 相关命令"></a>6、rados 相关命令</h3><p>注：rados是对于object的相关命令（<strong>object</strong> 即ceph最小单位- <strong>对象</strong>）</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">1. 将测试文件导入至池中<br>将测试文件导入至新创建的池中，需要指定一个新的object名<br>rados -p $&#123;poolname&#125; put $&#123;object-name&#125;  $&#123;file-name&#125;   # -p:指定存储池<br><br>2. 查看pool中所有对象<br>rados -p $&#123;poolname&#125; ls<br><br>3. 删除pool中对象<br>rados -p $&#123;poolname&#125; rm $&#123;object-name&#125;<br><br></code></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+
+
+
+]]></content>
+      <categories>
+        <category>ceph</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>OpenStack Neutron trunk ports</title>
+    <url>/2023/06/21/Neutron-trunk%20ports/</url>
+    <content><![CDATA[<p>​     OpenStack Neutron trunk ports （VLAN-aware-VMs）,”VLAN aware VMs”有时也叫做”VM trunk ports”, 主要是让虚拟机收发的vlan tagged报文, 能够被虚拟网络所识别和处理。</p>
+<p>什么是主机的Trunk port？一般来说VLAN只是对交换机可知，主机不感知VLAN，也就是主机网卡发送出来的数据是不带VLAN Tag的。当主机将网卡配置成Trunk port，会在主机的Trunk port上添加多个带有不同VLAN ID的子网卡。通过子网卡发送的数据，会打上VLAN Tag，被发送出去。由于主机发送的网络数据有了变化（带上了VLAN Tag），对主机连接的网络提出了新的要求。另一方面，由于带了不同的VLAN Tag，子网卡可以认为连接在VLAN Tag标识的网络中。这样，不用实际增减主机的网卡，只需要为主机创建带VLAN ID的子网卡，就可以将主机添加到新的VLAN网络中。</p>
+<p>​     OpenStack对VLAN Trunk的支持就是指对OpenStack所管理的虚机的Trunk port，提供网络支持。大多数场景下，主机收发的是不带tag的报文，但是在实际环境中，无论是windows还是Linux环境都通过各自的方法可以收发带有vlan tag的报文。 而一个虚机要想接收不同vlan tag的报文，就需要在虚机上接入不同网络，即在虚机上配置不同网络的虚拟网卡。在NFV（Network Function Virtualization）场景下，若网络数量巨大，网卡数量也巨大，这种实现的方法就不现实；另一方面，连接的多个网络也是动态增减的，如果每次都增减网卡明显也是不方便的。如果使用Trunk port，当需要动态连接多个网络时，只需要动态的创建/删除相应的子网卡即可</p>
+<p>​      OpenStack中虚机的 Trunk port 设置步骤如下：</p>
+<ul>
+<li>需要在网络节点的neutron.conf里配置service_plugins为: “trunk”</li>
+<li>创建网络，如 net0(parent-net), net1,net2等，租户需要几个vlan网络，就需要创建几个对应net</li>
+<li>创建 parentport 端口，一个vm对应一个parentport</li>
+<li>创建 trunk，每一个trunk实例中包含一个parentport, 和若干个其他子接口netport</li>
+<li>创建 vm，指定parentport；在vm内创建子接口接口，并获取 dhcp 地址</li>
+</ul>
+]]></content>
+      <categories>
+        <category>openstack</category>
+      </categories>
   </entry>
   <entry>
     <title>kolla-ansible 部署报错</title>
@@ -275,6 +341,25 @@
       <tags>
         <tag>openstack</tag>
         <tag>kolla</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>删除网卡自动分配的fix ip</title>
+    <url>/2023/05/24/%E5%88%A0%E9%99%A4%E7%BD%91%E5%8D%A1%E8%87%AA%E5%8A%A8%E5%88%86%E9%85%8D%E7%9A%84fix-ip/</url>
+    <content><![CDATA[<p>当我们想要给云主机添加第二块无 IP 的网卡时，需要云主机挂载上新的网卡接口，但是在挂载接口时，时常会dhcp自动的分配一个ip地址，此时我们需要给他删除掉分配的地址，让他成为一个没有IP地址的网卡</p>
+<p>找出目标云主机的 port 列表（此处我需要移除 IP的是 192.168.2.6 ）</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack port list --server  1317ada5-231c-417f-9cc8-b6867591457e<br></code></pre></td></tr></table></figure>
+
+<p><img src="/2023/05/24/%E5%88%A0%E9%99%A4%E7%BD%91%E5%8D%A1%E8%87%AA%E5%8A%A8%E5%88%86%E9%85%8D%E7%9A%84fix-ip/1.jpg"></p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack  server  remove port $server_id  $port_id<br>openstack port set $port_id   --no-fixed-ip<br>openstack  server  add port $server_id  $port_id<br>openstack port list --server  41350a43-bd76-45fc-92ff-283e01c124fa<br></code></pre></td></tr></table></figure>
+
+<p><img src="/2023/05/24/%E5%88%A0%E9%99%A4%E7%BD%91%E5%8D%A1%E8%87%AA%E5%8A%A8%E5%88%86%E9%85%8D%E7%9A%84fix-ip/2.jpg"></p>
+]]></content>
+      <categories>
+        <category>openstack</category>
+      </categories>
+      <tags>
+        <tag>openstack</tag>
       </tags>
   </entry>
   <entry>
@@ -384,25 +469,6 @@
       <tags>
         <tag>openstack</tag>
         <tag>kolla</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>删除网卡自动分配的fix ip</title>
-    <url>/2023/05/24/%E5%88%A0%E9%99%A4%E7%BD%91%E5%8D%A1%E8%87%AA%E5%8A%A8%E5%88%86%E9%85%8D%E7%9A%84fix-ip/</url>
-    <content><![CDATA[<p>当我们想要给云主机添加第二块无 IP 的网卡时，需要云主机挂载上新的网卡接口，但是在挂载接口时，时常会dhcp自动的分配一个ip地址，此时我们需要给他删除掉分配的地址，让他成为一个没有IP地址的网卡</p>
-<p>找出目标云主机的 port 列表（此处我需要移除 IP的是 192.168.2.6 ）</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack port list --server  1317ada5-231c-417f-9cc8-b6867591457e<br></code></pre></td></tr></table></figure>
-
-<p><img src="/2023/05/24/%E5%88%A0%E9%99%A4%E7%BD%91%E5%8D%A1%E8%87%AA%E5%8A%A8%E5%88%86%E9%85%8D%E7%9A%84fix-ip/1.jpg"></p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><code class="hljs shell">openstack  server  remove port $server_id  $port_id<br>openstack port set $port_id   --no-fixed-ip<br>openstack  server  add port $server_id  $port_id<br>openstack port list --server  41350a43-bd76-45fc-92ff-283e01c124fa<br></code></pre></td></tr></table></figure>
-
-<p><img src="/2023/05/24/%E5%88%A0%E9%99%A4%E7%BD%91%E5%8D%A1%E8%87%AA%E5%8A%A8%E5%88%86%E9%85%8D%E7%9A%84fix-ip/2.jpg"></p>
-]]></content>
-      <categories>
-        <category>openstack</category>
-      </categories>
-      <tags>
-        <tag>openstack</tag>
       </tags>
   </entry>
   <entry>
